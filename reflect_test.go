@@ -1,31 +1,31 @@
 package go2cpp
 
-import (
-	"github.com/orestonce/go2cpp/testdata"
-	"testing"
-)
+// import (
+// 	"github.com/orestonce/go2cpp/testdata"
+// 	"testing"
+// )
 
-func TestGo2cppContext_Generate1(t *testing.T) {
-	//err := os.MkdirAll("testdata", 0777)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//err = os.WriteFile("testdata/main.go", []byte(str), 0777)
-	//if err != nil {
-	//	panic(err)
-	//}
-	ctx := NewGo2cppContext(NewGo2cppContextReq{
-		CppBaseName: "InProcessRpc",
-		GoLibName:   "InProcessRpc-impl",
-	})
-	ctx.Generate1(testdata.HelloWorld2)
-	ctx.Generate1(testdata.HelloWorld)
-	ctx.Generate1(testdata.Ed25519)
-	ctx.Generate1(testdata.HelloWorld4)
-	ctx.Generate1(testdata.HelloWorld5)
-	ctx.Generate1(testdata.HelloWorld6)
-	ctx.MustCreate386LibraryInDir("tmp/temp1")
-}
+// func TestGo2cppContext_Generate1(t *testing.T) {
+// 	//err := os.MkdirAll("testdata", 0777)
+// 	//if err != nil {
+// 	//	panic(err)
+// 	//}
+// 	//err = os.WriteFile("testdata/main.go", []byte(str), 0777)
+// 	//if err != nil {
+// 	//	panic(err)
+// 	//}
+// 	ctx := NewGo2cppContext(NewGo2cppContextReq{
+// 		CppBaseName: "InProcessRpc",
+// 		GoLibName:   "InProcessRpc-impl",
+// 	})
+// 	ctx.Generate1(testdata.HelloWorld2)
+// 	ctx.Generate1(testdata.HelloWorld)
+// 	ctx.Generate1(testdata.Ed25519)
+// 	ctx.Generate1(testdata.HelloWorld4)
+// 	ctx.Generate1(testdata.HelloWorld5)
+// 	ctx.Generate1(testdata.HelloWorld6)
+// 	ctx.MustCreate386LibraryInDir("tmp/temp1")
+// }
 
 const str = `package testdata
 
