@@ -1,7 +1,7 @@
 package go2cpp
 
 import (
-	"github.com/go2cpp/testdata"
+	"github.com/orestonce/go2cpp/testdata"
 	"testing"
 )
 
