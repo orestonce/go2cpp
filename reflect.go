@@ -45,11 +45,9 @@ func (this *Go2cppContext) Generate1(methodFn interface{}) {
 	this.cppTypeDeclare(fnType)
 	this.cppFnDeclare(fnType, methodName)
 	this.dotCpp.WriteString(`{
+std::string in;
 `)
 	for idx := 0; idx < fnType.NumIn(); idx++ {
-		if idx == 0 {
-			this.dotCpp.WriteString("\tstd::string in;\n")
-		}
 		this.cppEncode(this.inArgName(idx), fnType.In(idx))
 	}
 	this.dotCpp.WriteString(`	char *out = NULL;
