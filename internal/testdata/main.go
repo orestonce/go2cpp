@@ -1,34 +1,4 @@
-package go2cpp
-
-import (
-	"github.com/orestonce/go2cpp/internal/testdata"
-	"testing"
-)
-
-func TestGo2cppContext_Generate1(t *testing.T) {
-	//err := os.MkdirAll("internal/testdata", 0777)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//err = os.WriteFile("internal/testdata/main.go", []byte(str), 0777)
-	//if err != nil {
-	//	panic(err)
-	//}
-	ctx := NewGo2cppContext(NewGo2cppContextReq{
-		CppBaseName: "InProcessRpc",
-		GoLibName:   "InProcessRpc-impl",
-	})
-	ctx.Generate1(testdata.HelloWorld2)
-	ctx.Generate1(testdata.HelloWorld)
-	ctx.Generate1(testdata.Ed25519)
-	ctx.Generate1(testdata.HelloWorld4)
-	ctx.Generate1(testdata.HelloWorld5)
-	ctx.Generate1(testdata.HelloWorld6)
-	ctx.Generate1(testdata.HelloWorld7)
-	ctx.MustCreate386LibraryInDir("tmp/temp1")
-}
-
-const str = `package testdata
+package testdata
 
 import (
 	"crypto/ed25519"
@@ -88,4 +58,3 @@ func HelloWorld6(i []HelloWorldReq) (o []HelloWorldResp) {
 func HelloWorld7(b bool) bool {
 	return !b
 }
-`
