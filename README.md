@@ -12,3 +12,4 @@ go2cpp : 将go接口方便导出为c++接口的一个工具
   * [x] struct
   * [x] byte  
   * [x] slice/切片
+  * [x] bool

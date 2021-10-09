@@ -59,7 +59,7 @@ std::string in;
 		kind := out.Kind()
 		buf := &this.dotCpp
 		switch kind {
-		case reflect.Int8, reflect.Uint8, reflect.Int, reflect.Int32, reflect.String, reflect.Struct, reflect.Slice:
+		case reflect.Bool, reflect.Int8, reflect.Uint8, reflect.Int, reflect.Int32, reflect.String, reflect.Struct, reflect.Slice:
 			buf.WriteString(this.goType2Cpp(out) + " retValue;\n")
 			buf.WriteString("int outIdx = 0;\n")
 			this.cppDecode("retValue", out)
@@ -188,6 +188,8 @@ func (this *Go2cppContext) genOut(out reflect.Type) {
 
 func (this *Go2cppContext) goType2Cpp(out reflect.Type) string {
 	switch out.Kind() {
+	case reflect.Bool:
+		return "bool"
 	case reflect.Int8:
 		return "int8_t"
 	case reflect.Uint8:
@@ -217,8 +219,8 @@ func (this *Go2cppContext) cppDecode(name string, fType reflect.Type) {
 		buf.WriteString("outIdx+=4;\n")
 	}
 	switch kind {
-	case reflect.Int8, reflect.Uint8:
-		buf.WriteString(name + " = (uint8_t) out[outIdx];\n")
+	case reflect.Bool, reflect.Int8, reflect.Uint8:
+		buf.WriteString(name + " = (" + this.goType2Cpp(fType) + ") out[outIdx];\n")
 		buf.WriteString("outIdx++;\n")
 	case reflect.Int, reflect.Int32:
 		buf.WriteString("{\n")
@@ -271,7 +273,7 @@ func (this *Go2cppContext) goFnDeclare(pkgName string, shortPkgName string, meth
 
 			kind := in.Kind()
 			switch kind {
-			case reflect.Int8, reflect.Uint8, reflect.Int, reflect.Int32:
+			case reflect.Bool, reflect.Int8, reflect.Uint8, reflect.Int, reflect.Int32:
 				buf.WriteString("var " + this.inArgName(idx) + " " + kind.String() + "\n")
 				this.goDecode(this.inArgName(idx), fnType.In(idx))
 			case reflect.String:
@@ -321,6 +323,11 @@ func (this *Go2cppContext) goDecode(name string, fType reflect.Type) {
 		buf.WriteString(name0 + " = " + kind0 + "(binary.BigEndian.Uint32(tmp))\n")
 	}
 	switch kind {
+	case reflect.Bool:
+		buf.WriteString("{\n")
+		buf.WriteString("value, _ := inBuf.ReadByte()\n")
+		buf.WriteString(name + " = (value != 0)\n")
+		buf.WriteString("}\n")
 	case reflect.Int8, reflect.Uint8:
 		buf.WriteString("{\n")
 		buf.WriteString("value, _ := inBuf.ReadByte()\n")
@@ -368,6 +375,14 @@ func (this *Go2cppContext) goEncode(name string, fType reflect.Type) {
 		buf.WriteString("outBuf.Write(tmp)\n")
 	}
 	switch kind {
+	case reflect.Bool:
+		buf.WriteString("{\n")
+		buf.WriteString("var value byte\n")
+		buf.WriteString("if " + name + " {\n")
+		buf.WriteString("value = 1\n")
+		buf.WriteString("}\n")
+		buf.WriteString("outBuf.WriteByte(value)\n")
+		buf.WriteString("}\n")
 	case reflect.Int8, reflect.Uint8:
 		buf.WriteString("{\n")
 		buf.WriteString("outBuf.WriteByte(byte(" + name + "))\n")
@@ -411,8 +426,10 @@ func (this *Go2cppContext) cppEncode(name string, fType reflect.Type) {
         in.append(tmp, 4);` + "\n")
 	}
 	switch fType.Kind() {
+	case reflect.Bool:
+		buf.WriteString(`in.append((char )(` + name + "));\n")
 	case reflect.Uint8, reflect.Int8:
-		buf.WriteString(`in.append((char *)(&` + name + "), 1);\n")
+		buf.WriteString(`in.append((char)(` + name + "));\n")
 	case reflect.Int32, reflect.Int:
 		encodeUint32(name)
 	case reflect.String:
@@ -460,7 +477,7 @@ func (this *Go2cppContext) cppTypeDeclare(fnType reflect.Type) {
 	declareTypeBefore = func(in reflect.Type) {
 		var typeName string
 		switch in.Kind() {
-		case reflect.Int8, reflect.Uint8, reflect.Int, reflect.Int32, reflect.String:
+		case reflect.Bool, reflect.Int8, reflect.Uint8, reflect.Int, reflect.Int32, reflect.String:
 			return
 		case reflect.Struct:
 			typeName = this.goType2Cpp(in)
