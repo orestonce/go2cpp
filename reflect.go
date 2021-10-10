@@ -67,10 +67,10 @@ func (this *Go2cppContext) Generate1(methodFn interface{}) {
 	this.cppTypeDeclare(fnType)
 	this.cppFnDeclare(fnType, methodName)
 	this.dotCpp.WriteString(`{
-std::string in;
+	std::string in;
 `)
 	for idx := 0; idx < fnType.NumIn(); idx++ {
-		this.cppEncode(this.inArgName(idx), fnType.In(idx))
+		this.cppEncode("\t", this.inArgName(idx), fnType.In(idx))
 	}
 	this.dotCpp.WriteString(`	char *out = NULL;
 	int outLen = 0;
@@ -82,9 +82,9 @@ std::string in;
 		buf := &this.dotCpp
 		switch kind {
 		case reflect.Bool, reflect.Int8, reflect.Uint8, reflect.Int, reflect.Int32, reflect.Uint32, reflect.String, reflect.Struct, reflect.Slice:
-			buf.WriteString(this.goType2Cpp(out) + " retValue;\n")
-			buf.WriteString("int outIdx = 0;\n")
-			this.cppDecode("retValue", out)
+			buf.WriteString("\t" + this.goType2Cpp(out) + " retValue;\n")
+			buf.WriteString("\t" + "int outIdx = 0;\n")
+			this.cppDecode("\t", "retValue", out)
 		default:
 			panic("genGo " + kind.String())
 		}
@@ -94,7 +94,7 @@ std::string in;
 	}
 `)
 	if fnType.NumOut() == 1 {
-		this.dotCpp.WriteString(`return retValue;` + "\n")
+		this.dotCpp.WriteString(`	return retValue;` + "\n")
 	}
 	this.dotCpp.WriteString("}\n\n")
 	this.dotGo.WriteString("}\n\n")
@@ -244,45 +244,48 @@ func (this *Go2cppContext) goType2Cpp(out reflect.Type) string {
 	}
 }
 
-func (this *Go2cppContext) cppDecode(name string, fType reflect.Type) {
+func (this *Go2cppContext) cppDecode(prefix string, name string, fType reflect.Type) {
 	buf := &this.dotCpp
 	kind := fType.Kind()
-	decodeUint32 := func(name0 string) {
-		buf.WriteString("uint32_t a = uint32_t(uint8_t(out[outIdx+0]) << 24);\n")
-		buf.WriteString("uint32_t b = uint32_t(uint8_t(out[outIdx+1]) << 16);\n")
-		buf.WriteString("uint32_t c = uint32_t(uint8_t(out[outIdx+2]) << 8);\n")
-		buf.WriteString("uint32_t d = uint32_t(uint8_t(out[outIdx+3]) << 0);\n")
-		buf.WriteString(name0 + " = a | b | c | d;\n")
-		buf.WriteString("outIdx+=4;\n")
+	decodeUint32 := func(prefix, name0 string) {
+		buf.WriteString(prefix + "uint32_t a = uint32_t(uint8_t(out[outIdx+0]) << 24);\n")
+		buf.WriteString(prefix + "uint32_t b = uint32_t(uint8_t(out[outIdx+1]) << 16);\n")
+		buf.WriteString(prefix + "uint32_t c = uint32_t(uint8_t(out[outIdx+2]) << 8);\n")
+		buf.WriteString(prefix + "uint32_t d = uint32_t(uint8_t(out[outIdx+3]) << 0);\n")
+		buf.WriteString(prefix + name0 + " = a | b | c | d;\n")
+		buf.WriteString(prefix + "outIdx+=4;\n")
 	}
 	switch kind {
 	case reflect.Bool, reflect.Int8, reflect.Uint8:
-		buf.WriteString(name + " = (" + this.goType2Cpp(fType) + ") out[outIdx];\n")
-		buf.WriteString("outIdx++;\n")
+		buf.WriteString(prefix + name + " = (" + this.goType2Cpp(fType) + ") out[outIdx];\n")
+		buf.WriteString(prefix + "outIdx++;\n")
 	case reflect.Int, reflect.Int32, reflect.Uint32:
-		buf.WriteString("{\n")
-		decodeUint32(name)
-		buf.WriteString("}\n")
+		buf.WriteString(prefix + "{\n")
+		decodeUint32(prefix+"\t", name)
+		buf.WriteString(prefix + "}\n")
 	case reflect.String:
-		buf.WriteString("{\n")
-		buf.WriteString("uint32_t length = 0;\n")
-		decodeUint32("length")
-		buf.WriteString(name + " = std::string(out+outIdx, out+outIdx+length);\n")
-		buf.WriteString("outIdx+=length;\n")
-		buf.WriteString("}\n")
+		buf.WriteString(prefix + "{\n")
+		buf.WriteString(prefix + "\t" + "uint32_t length = 0;\n")
+		decodeUint32(prefix+"\t", "length")
+		buf.WriteString(prefix + "\t" + name + " = std::string(out+outIdx, out+outIdx+length);\n")
+		buf.WriteString(prefix + "\t" + "outIdx+=length;\n")
+		buf.WriteString(prefix + "}\n")
 	case reflect.Struct:
+		buf.WriteString(prefix + "{\n")
 		for idx2 := 0; idx2 < fType.NumField(); idx2++ {
-			this.cppDecode(name+"."+fType.Field(idx2).Name, fType.Field(idx2).Type)
+			this.cppDecode(prefix+"\t", name+"."+fType.Field(idx2).Name, fType.Field(idx2).Type)
 		}
+		buf.WriteString(prefix + "}\n")
 	case reflect.Slice:
-		buf.WriteString("{\n")
-		buf.WriteString("uint32_t length = 0;\n")
-		decodeUint32("length")
-		buf.WriteString(name + ".resize(length);\n")
-		buf.WriteString("for (uint32_t idx = 0; idx < length; idx++) {\n")
-		this.cppDecode(name+".at(idx)", fType.Elem())
-		buf.WriteString("}\n")
-		buf.WriteString("}\n")
+		buf.WriteString(prefix + "{\n")
+		buf.WriteString(prefix + "\t" + "uint32_t length = 0;\n")
+		decodeUint32(prefix+"\t", "length")
+		buf.WriteString(prefix + "\t" + "for (uint32_t idx = 0; idx < length; idx++) {\n")
+		buf.WriteString(prefix + "\t\t" + this.goType2Cpp(fType.Elem()) + " tmp;\n")
+		this.cppDecode(prefix+"\t\t", "tmp", fType.Elem())
+		buf.WriteString(prefix + "\t\t" + name + ".push_back(tmp);\n")
+		buf.WriteString(prefix + "\t" + "}\n")
+		buf.WriteString(prefix + "}\n")
 	default:
 		panic("genGo " + kind.String())
 	}
@@ -451,42 +454,48 @@ func (this *Go2cppContext) goEncode(name string, fType reflect.Type) {
 	}
 }
 
-func (this *Go2cppContext) cppEncode(name string, fType reflect.Type) {
+func (this *Go2cppContext) cppEncode(prefix string, name string, fType reflect.Type) {
 	buf := &this.dotCpp
-	buf.WriteString("{\n")
-	encodeUint32 := func(name0 string) {
-		buf.WriteString(`char tmp[4];
-        tmp[0] = (uint32_t(` + name0 + `) >> 24) & 0xFF;
-        tmp[1] = (uint32_t(` + name0 + `) >> 16) & 0xFF;
-        tmp[2] = (uint32_t(` + name0 + `) >> 8) & 0xFF;
-        tmp[3] = (uint32_t(` + name0 + `) >> 0) & 0xFF;
-        in.append(tmp, 4);` + "\n")
+	encodeUint32 := func(prefix, name0 string) {
+		buf.WriteString(prefix + `char tmp[4];
+` + prefix + `tmp[0] = (uint32_t(` + name0 + `) >> 24) & 0xFF;
+` + prefix + `tmp[1] = (uint32_t(` + name0 + `) >> 16) & 0xFF;
+` + prefix + `tmp[2] = (uint32_t(` + name0 + `) >> 8) & 0xFF;
+` + prefix + `tmp[3] = (uint32_t(` + name0 + `) >> 0) & 0xFF;
+` + prefix + `in.append(tmp, 4);` + "\n")
 	}
 	switch fType.Kind() {
 	case reflect.Bool:
-		buf.WriteString(`in.append((char*)(&` + name + "), 1);\n")
+		buf.WriteString(prefix + `in.append((char*)(&` + name + "), 1);\n")
 	case reflect.Uint8, reflect.Int8:
-		buf.WriteString(`in.append((char*)(&` + name + "), 1);\n")
+		buf.WriteString(prefix + `in.append((char*)(&` + name + "), 1);\n")
 	case reflect.Int32, reflect.Int, reflect.Uint32:
-		encodeUint32(name)
+		buf.WriteString(prefix + "{\n")
+		encodeUint32(prefix+"\t", name)
+		buf.WriteString(prefix + "}\n")
 	case reflect.String:
-		buf.WriteString(`uint32_t length = ` + name + ".length();\n")
-		encodeUint32("length")
-		buf.WriteString(`in.append(` + name + ");\n")
+		buf.WriteString(prefix + "{\n")
+		buf.WriteString(prefix + "\t" + `uint32_t length = ` + name + ".length();\n")
+		encodeUint32(prefix+"\t", "length")
+		buf.WriteString(prefix + "\t" + `in.append(` + name + ");\n")
+		buf.WriteString(prefix + "}\n")
 	case reflect.Struct:
+		buf.WriteString(prefix + "{\n")
 		for idx2 := 0; idx2 < fType.NumField(); idx2++ {
-			this.cppEncode(name+"."+fType.Field(idx2).Name, fType.Field(idx2).Type)
+			this.cppEncode(prefix+"\t", name+"."+fType.Field(idx2).Name, fType.Field(idx2).Type)
 		}
+		buf.WriteString(prefix + "}\n")
 	case reflect.Slice:
-		buf.WriteString(`uint32_t length = ` + name + ".size();\n")
-		encodeUint32("length")
-		buf.WriteString("for (uint32_t idx=0; idx < length; idx++) {\n")
-		this.cppEncode(name+"[idx]", fType.Elem())
-		buf.WriteString("}\n")
+		buf.WriteString(prefix + "{\n")
+		buf.WriteString(prefix + "\t" + `uint32_t length = ` + name + ".size();\n")
+		encodeUint32(prefix+"\t", "length")
+		buf.WriteString(prefix + "\tfor (uint32_t idx=0; idx < length; idx++) {\n")
+		this.cppEncode(prefix+"\t\t", name+"[idx]", fType.Elem())
+		buf.WriteString(prefix + "\t}\n")
+		buf.WriteString(prefix + "}\n")
 	default:
 		panic("cppEncode " + fType.Kind().String())
 	}
-	buf.WriteString("}\n")
 }
 
 func (this *Go2cppContext) cppFnDeclare(fnType reflect.Type, methodName string) {
