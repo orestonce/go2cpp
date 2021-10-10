@@ -214,7 +214,7 @@ func (this *Go2cppContext) cppDecode(name string, fType reflect.Type) {
 		buf.WriteString("uint32_t a = uint32_t(uint8_t(out[outIdx+0]) << 24);\n")
 		buf.WriteString("uint32_t b = uint32_t(uint8_t(out[outIdx+1]) << 16);\n")
 		buf.WriteString("uint32_t c = uint32_t(uint8_t(out[outIdx+2]) << 8);\n")
-		buf.WriteString("uint32_t d = uint32_t(uint8_t(out[outIdx+3]) << 0;\n")
+		buf.WriteString("uint32_t d = uint32_t(uint8_t(out[outIdx+3]) << 0);\n")
 		buf.WriteString(name0 + " = a | b | c | d;\n")
 		buf.WriteString("outIdx+=4;\n")
 	}
