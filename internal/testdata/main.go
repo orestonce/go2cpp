@@ -3,6 +3,7 @@ package testdata
 import (
 	"reflect"
 	"strings"
+	"time"
 )
 
 func Hello_BoolTrue(a bool) bool {
@@ -187,4 +188,9 @@ func Hello_Struct0(req Hello_Struct0Req) Hello_Struct0Req {
 		panic("Hello_Struct0")
 	}
 	return req
+}
+
+func Hello_Block(s string) (i int) {
+	time.Sleep(time.Second)
+	return len(s)
 }

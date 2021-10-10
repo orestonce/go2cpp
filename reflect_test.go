@@ -19,7 +19,6 @@ func TestGo2cppContext_Generate1(t *testing.T) {
 	//}
 	ctx := NewGo2cppContext(NewGo2cppContextReq{
 		CppBaseName: "InProcessRpc",
-		GoLibName:   "InProcessRpc-impl",
 	})
 	ctx.Generate1(testdata.Hello_BoolTrue)
 	ctx.Generate1(testdata.Hello_BoolFalse)
@@ -51,9 +50,10 @@ func TestGo2cppContext_Generate1(t *testing.T) {
 	ctx.Generate1(testdata.Hello_Slice0)
 
 	ctx.Generate1(testdata.Hello_Struct0)
+	ctx.Generate1(testdata.Hello_Block)
 
 	ctx.MustCreate386LibraryInDir("tmp/temp1")
-	
+
 	err := os.WriteFile("tmp/temp1/main.cpp", []byte(mainCpp), 0777)
 	if err != nil {
 		panic(err)

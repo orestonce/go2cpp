@@ -22,11 +22,20 @@ type Go2cppContext struct {
 	dotH              bytes.Buffer
 	dotCpp            bytes.Buffer
 	dotGo             bytes.Buffer
+	qtMethodList      []qtMethodCfg
+}
+
+type qtMethodCfg struct {
+	methodType reflect.Type
+	methodName string // TrimSuffix(x, "_Block")
+	returnType reflect.Type
 }
 
 type NewGo2cppContextReq struct {
-	GoLibName   string
-	CppBaseName string
+	CppBaseName       string
+	EnableQt          bool
+	QtExtendBaseClass string
+	QtIncludeList     []string
 }
 
 func NewGo2cppContext(req NewGo2cppContextReq) *Go2cppContext {
@@ -40,6 +49,19 @@ func NewGo2cppContext(req NewGo2cppContextReq) *Go2cppContext {
 func (this *Go2cppContext) Generate1(methodFn interface{}) {
 	fnType := reflect.TypeOf(methodFn)
 	pkgName, shortPkgName, methodName := splitAndValidatePkg(runtime.FuncForPC(reflect.ValueOf(methodFn).Pointer()).Name())
+
+	if strings.HasSuffix(methodName, "_Block") { // Qt阻塞式调用
+		this.qtMethodList = append(this.qtMethodList, qtMethodCfg{
+			methodType: fnType,
+			methodName: strings.TrimSuffix(methodName, "_Block"),
+			returnType: func() reflect.Type {
+				if fnType.NumOut() != 1 {
+					return nil
+				}
+				return fnType.Out(0)
+			}(),
+		})
+	}
 
 	this.goFnDeclare(pkgName, shortPkgName, methodName, fnType)
 	this.cppTypeDeclare(fnType)
@@ -81,8 +103,14 @@ std::string in;
 func (this *Go2cppContext) GetDotCppContent() []byte {
 	buf := bytes.NewBuffer(nil)
 	buf.WriteString(`#include ` + strconv.Quote(this.req.CppBaseName+".h") + "\n")
-	buf.WriteString("#include " + strconv.Quote(this.req.GoLibName+".h") + "\n\n")
+	buf.WriteString("#include " + strconv.Quote(this.req.CppBaseName+"-impl.h") + "\n\n")
+	if this.req.EnableQt {
+		this.appendQtIncludeCpp(buf)
+	}
 	buf.WriteString(this.dotCpp.String())
+	if this.req.EnableQt {
+		this.appendQtDotCppDefine(buf)
+	}
 	return buf.Bytes()
 }
 
@@ -92,8 +120,14 @@ func (this *Go2cppContext) GetDotHContent() []byte {
 	buf.WriteString("#include <string>\n")
 	buf.WriteString("#include <vector>\n")
 	buf.WriteString("#include <cstdint>\n")
+	if this.req.EnableQt {
+		this.appendQtIncludeH(buf)
+	}
 	buf.WriteString("\n")
 	buf.WriteString(this.dotH.String())
+	if this.req.EnableQt {
+		this.appendQtDotHDefine(buf)
+	}
 	return buf.Bytes()
 }
 
@@ -125,8 +159,8 @@ func (this *Go2cppContext) MustCreate386LibraryInDir(dir string) {
 		}
 	}
 
-	writeFile(filepath.Join(dir, this.req.GoLibName+".go"), this.GetDotGoContent())
-	cmd := exec.Command("go", "build", "-buildmode=c-archive", this.req.GoLibName+".go")
+	writeFile(filepath.Join(dir, this.req.CppBaseName+"-impl.go"), this.GetDotGoContent())
+	cmd := exec.Command("go", "build", "-buildmode=c-archive", this.req.CppBaseName+"-impl.go")
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=1", "GOARCH=386")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -137,10 +171,10 @@ func (this *Go2cppContext) MustCreate386LibraryInDir(dir string) {
 	}
 	writeFile(filepath.Join(dir, this.req.CppBaseName+".h"), this.GetDotHContent())
 	writeFile(filepath.Join(dir, this.req.CppBaseName+".cpp"), this.GetDotCppContent())
-	//err = os.Remove(filepath.Join(dir, this.req.GoLibName+".go"))
-	//if err != nil {
-	//	panic(err)
-	//}
+	err = os.Remove(filepath.Join(dir, this.req.CppBaseName+"-impl.go"))
+	if err != nil {
+		panic(err)
+	}
 }
 
 func writeFile(dst string, content []byte) {
@@ -517,7 +551,7 @@ func (this *Go2cppContext) cppTypeDeclare(fnType reflect.Type) {
 		if in.Kind() == reflect.Struct {
 			buf.WriteString("struct " + this.goType2Cpp(in) + "{\n")
 			for idx1 := 0; idx1 < in.NumField(); idx1++ {
-				buf.WriteString(this.goType2Cpp(in.Field(idx1).Type) + " " + in.Field(idx1).Name + ";\n")
+				buf.WriteString("\t" + this.goType2Cpp(in.Field(idx1).Type) + " " + in.Field(idx1).Name + ";\n")
 			}
 			buf.WriteString("};\n")
 		}
