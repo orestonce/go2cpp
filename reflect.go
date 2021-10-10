@@ -121,6 +121,8 @@ func (this *Go2cppContext) GetDotHContent() []byte {
 	buf.WriteString("#include <vector>\n")
 	buf.WriteString("#include <cstdint>\n")
 	if this.req.EnableQt {
+		buf.WriteString("//在xxx.pro 内部增加静态库的链接声明\n")
+		buf.WriteString("//LIBS += -L$$PWD -l" + this.req.CppBaseName + "-impl\n")
 		this.appendQtIncludeH(buf)
 	}
 	buf.WriteString("\n")
@@ -179,17 +181,6 @@ func (this *Go2cppContext) MustCreate386LibraryInDir(dir string) {
 
 func writeFile(dst string, content []byte) {
 	err := ioutil.WriteFile(dst, content, 0777)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func copyFile(src string, dst string) {
-	data, err := ioutil.ReadFile(src)
-	if err != nil {
-		panic(err)
-	}
-	err = ioutil.WriteFile(dst, data, 0777)
 	if err != nil {
 		panic(err)
 	}
