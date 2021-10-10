@@ -211,10 +211,10 @@ func (this *Go2cppContext) cppDecode(name string, fType reflect.Type) {
 	buf := &this.dotCpp
 	kind := fType.Kind()
 	decodeUint32 := func(name0 string) {
-		buf.WriteString("uint32_t a = out[outIdx+0] << 24;\n")
-		buf.WriteString("uint32_t b = out[outIdx+1] << 16;\n")
-		buf.WriteString("uint32_t c = out[outIdx+2] << 8;\n")
-		buf.WriteString("uint32_t d = out[outIdx+3] << 0;\n")
+		buf.WriteString("uint32_t a = uint32_t(uint8_t(out[outIdx+0]) << 24;\n")
+		buf.WriteString("uint32_t b = uint32_t(uint8_t(out[outIdx+1]) << 16;\n")
+		buf.WriteString("uint32_t c = uint32_t(uint8_t(out[outIdx+2]) << 8;\n")
+		buf.WriteString("uint32_t d = uint32_t(uint8_t(out[outIdx+3]) << 0;\n")
 		buf.WriteString(name0 + " = a | b | c | d;\n")
 		buf.WriteString("outIdx+=4;\n")
 	}
@@ -419,10 +419,10 @@ func (this *Go2cppContext) cppEncode(name string, fType reflect.Type) {
 	buf.WriteString("{\n")
 	encodeUint32 := func(name0 string) {
 		buf.WriteString(`char tmp[4];
-        tmp[0] = (uint32_t(` + name0 + `) >> 24) & 0xFF;
-        tmp[1] = (uint32_t(` + name0 + `) >> 16) & 0xFF;
-        tmp[2] = (uint32_t(` + name0 + `) >> 8) & 0xFF;
-        tmp[3] = (uint32_t(` + name0 + `) >> 0) & 0xFF;
+        tmp[0] = (uint32_t(uint8_t(` + name0 + `)) >> 24) & 0xFF;
+        tmp[1] = (uint32_t(uint8_t(` + name0 + `)) >> 16) & 0xFF;
+        tmp[2] = (uint32_t(uint8_t(` + name0 + `)) >> 8) & 0xFF;
+        tmp[3] = (uint32_t(uint8_t(` + name0 + `)) >> 0) & 0xFF;
         in.append(tmp, 4);` + "\n")
 	}
 	switch fType.Kind() {
