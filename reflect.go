@@ -100,10 +100,11 @@ func (this *Go2cppContext) Generate1(methodFn interface{}) {
 	this.dotGo.WriteString("}\n\n")
 }
 
-func (this *Go2cppContext) GetDotCppContent() []byte {
+func (this *Go2cppContext) GetDotCppContent(implDotHContent []byte) []byte {
 	buf := bytes.NewBuffer(nil)
 	buf.WriteString(`#include ` + strconv.Quote(this.req.CppBaseName+".h") + "\n")
-	buf.WriteString("#include " + strconv.Quote(this.req.CppBaseName+"-impl.h") + "\n\n")
+	buf.Write(implDotHContent)
+	buf.WriteString("\n\n")
 	if this.req.EnableQt {
 		this.appendQtIncludeCpp(buf)
 	}
@@ -172,8 +173,16 @@ func (this *Go2cppContext) MustCreate386LibraryInDir(dir string) {
 		panic(err)
 	}
 	writeFile(filepath.Join(dir, this.req.CppBaseName+".h"), this.GetDotHContent())
-	writeFile(filepath.Join(dir, this.req.CppBaseName+".cpp"), this.GetDotCppContent())
+	implDotHContent, err := ioutil.ReadFile(filepath.Join(dir, this.req.CppBaseName+"-impl.h"))
+	if err != nil {
+		panic(err)
+	}
+	writeFile(filepath.Join(dir, this.req.CppBaseName+".cpp"), this.GetDotCppContent(implDotHContent))
 	err = os.Remove(filepath.Join(dir, this.req.CppBaseName+"-impl.go"))
+	if err != nil {
+		panic(err)
+	}
+	err = os.Remove(filepath.Join(dir, this.req.CppBaseName+"-impl.h"))
 	if err != nil {
 		panic(err)
 	}
