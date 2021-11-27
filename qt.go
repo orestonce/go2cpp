@@ -58,6 +58,8 @@ public:
 	qtH.WriteString(`private:
 	QThreadPool m_pool;
 };
+
+	GoCallObject* GetDefaultGoCallObject();
 `)
 }
 
@@ -71,7 +73,7 @@ func (this *Go2cppContext) appendQtIncludeCpp(buf *bytes.Buffer) {
 func (this *Go2cppContext) appendQtDotCppDefine(qtCpp *bytes.Buffer) {
 	qtCpp.WriteString(`
 
-GoCallObject::GoCallObject(QWidget *parent) : `+this.req.QtExtendBaseClass+`(parent)
+GoCallObject::GoCallObject(QObject *parent) : `+this.req.QtExtendBaseClass+`(parent)
 {
 `)
 	for _, qtCfg := range this.qtMethodList {
@@ -119,6 +121,12 @@ GoCallObject::GoCallObject(QWidget *parent) : `+this.req.QtExtendBaseClass+`(par
 GoCallObject::~GoCallObject()
 {
     m_pool.waitForDone();
+}
+
+GoCallObject* GetDefaultGoCallObject()
+{
+	static GoCallObject obj;
+    return &obj;
 }
 
 void GoCallObject::RegisterMetaType()
