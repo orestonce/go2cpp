@@ -39,6 +39,9 @@ type NewGo2cppContextReq struct {
 }
 
 func NewGo2cppContext(req NewGo2cppContextReq) *Go2cppContext {
+	if req.EnableQt && req.QtExtendBaseClass == `` {
+		req.QtExtendBaseClass = `QObject`
+	}
 	return &Go2cppContext{
 		req:               req,
 		importMap:         map[string]struct{}{},

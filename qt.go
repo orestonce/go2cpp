@@ -6,7 +6,7 @@ import (
 
 func (this *Go2cppContext) appendQtIncludeH(qtH *bytes.Buffer) {
 	qtH.WriteString(`#include <QThreadPool>
-#include <QWidget>
+#include <QObject>
 `)
 	for _, hName := range this.req.QtIncludeList {
 		qtH.WriteString("#include <" + hName + ">\n")
@@ -32,7 +32,7 @@ class GoCallObject : public ` + this.req.QtExtendBaseClass + `
 {
     Q_OBJECT
 public:
-    explicit GoCallObject(QWidget *parent = 0);
+    explicit GoCallObject(QObject *parent = 0);
     ~GoCallObject();
     static void RegisterMetaType();
 `)
@@ -59,7 +59,7 @@ public:
 	QThreadPool m_pool;
 };
 
-	GoCallObject* GetDefaultGoCallObject();
+GoCallObject* GetDefaultGoCallObject();
 `)
 }
 
