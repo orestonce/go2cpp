@@ -362,6 +362,9 @@ func (this *Go2cppContext) goDecode(name string, fType reflect.Type) {
 		buf.WriteString("inBuf.Read(tmp)\n")
 		buf.WriteString(name0 + " = " + kind0 + "(binary.BigEndian.Uint32(tmp))\n")
 	}
+	if fType.PkgPath() != `` {
+		this.importMap[fType.PkgPath()] = struct{}{}
+	}
 	switch kind {
 	case reflect.Bool:
 		buf.WriteString("{\n")
@@ -387,8 +390,12 @@ func (this *Go2cppContext) goDecode(name string, fType reflect.Type) {
 		buf.WriteString("}\n")
 	case reflect.Struct:
 		buf.WriteString("{\n")
-		for idx2 := 0; idx2 < fType.NumField(); idx2++ {
-			this.goDecode(name+"."+fType.Field(idx2).Name, fType.Field(idx2).Type)
+		if fType.NumField() == 0 {
+			buf.WriteString(" _ = inBuf // 防止inBuf无引用错误\n")
+		} else {
+			for idx2 := 0; idx2 < fType.NumField(); idx2++ {
+				this.goDecode(name+"."+fType.Field(idx2).Name, fType.Field(idx2).Type)
+			}
 		}
 		buf.WriteString("}\n")
 	case reflect.Slice:
@@ -438,8 +445,12 @@ func (this *Go2cppContext) goEncode(name string, fType reflect.Type) {
 		buf.WriteString("}\n")
 	case reflect.Struct:
 		buf.WriteString("{\n")
-		for idx2 := 0; idx2 < fType.NumField(); idx2++ {
-			this.goEncode(name+"."+fType.Field(idx2).Name, fType.Field(idx2).Type)
+		if fType.NumField() == 0 {
+			buf.WriteString("_ = outArg // 防止outArg无引用错误\n")
+		} else {
+			for idx2 := 0; idx2 < fType.NumField(); idx2++ {
+				this.goEncode(name+"."+fType.Field(idx2).Name, fType.Field(idx2).Type)
+			}
 		}
 		buf.WriteString("}\n")
 	case reflect.Slice:

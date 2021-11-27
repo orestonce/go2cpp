@@ -2,9 +2,14 @@ package testdata
 
 import (
 	"reflect"
+	"sort"
 	"strings"
 	"time"
+	"unicode"
 )
+
+func Hello_EmptyArg() {
+}
 
 func Hello_BoolTrue(a bool) bool {
 	if !a {
@@ -190,7 +195,18 @@ func Hello_Struct0(req Hello_Struct0Req) Hello_Struct0Req {
 	return req
 }
 
+type HelloStruct1Req struct{}
+type HelloStruct1Resp struct{}
+
+func HelloStruct1(req HelloStruct1Req) (resp HelloStruct1Resp) {
+	return resp
+}
+
 func Hello_Block(s string) (i int) {
 	time.Sleep(time.Second)
 	return len(s)
+}
+
+func Hello_OutPkg(inArg sort.IntSlice) (outArg unicode.Range32){
+	return outArg
 }

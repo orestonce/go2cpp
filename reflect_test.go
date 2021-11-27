@@ -12,6 +12,7 @@ func TestGo2cppContext_Generate1(t *testing.T) {
 	ctx := NewGo2cppContext(NewGo2cppContextReq{
 		CppBaseName: "InProcessRpc",
 	})
+	ctx.Generate1(testdata.Hello_EmptyArg)
 	ctx.Generate1(testdata.Hello_BoolTrue)
 	ctx.Generate1(testdata.Hello_BoolFalse)
 
@@ -42,7 +43,10 @@ func TestGo2cppContext_Generate1(t *testing.T) {
 	ctx.Generate1(testdata.Hello_Slice0)
 
 	ctx.Generate1(testdata.Hello_Struct0)
+	ctx.Generate1(testdata.HelloStruct1)
 	ctx.Generate1(testdata.Hello_Block)
+
+	ctx.Generate1(testdata.Hello_OutPkg)
 
 	ctx.MustCreate386LibraryInDir("tmp/temp1")
 
