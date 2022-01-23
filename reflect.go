@@ -23,6 +23,7 @@ type Go2cppContext struct {
 	dotCpp            bytes.Buffer
 	dotGo             bytes.Buffer
 	qtMethodList      []qtMethodCfg
+	idx               int
 }
 
 type qtMethodCfg struct {
@@ -47,6 +48,11 @@ func NewGo2cppContext(req NewGo2cppContextReq) *Go2cppContext {
 		importMap:         map[string]struct{}{},
 		cppTypeDeclareMap: map[string]struct{}{},
 	}
+}
+
+func (this *Go2cppContext) getNextVarName() string {
+	this.idx++
+	return "tmp" + strconv.Itoa(this.idx)
 }
 
 func (this *Go2cppContext) Generate1(methodFn interface{}) {
@@ -284,9 +290,10 @@ func (this *Go2cppContext) cppDecode(prefix string, name string, fType reflect.T
 		buf.WriteString(prefix + "\t" + "uint32_t length = 0;\n")
 		decodeUint32(prefix+"\t", "length")
 		buf.WriteString(prefix + "\t" + "for (uint32_t idx = 0; idx < length; idx++) {\n")
-		buf.WriteString(prefix + "\t\t" + this.goType2Cpp(fType.Elem()) + " tmp;\n")
-		this.cppDecode(prefix+"\t\t", "tmp", fType.Elem())
-		buf.WriteString(prefix + "\t\t" + name + ".push_back(tmp);\n")
+		varName := this.getNextVarName()
+		buf.WriteString(prefix + "\t\t" + this.goType2Cpp(fType.Elem()) + " " + varName + ";\n")
+		this.cppDecode(prefix+"\t\t", varName, fType.Elem())
+		buf.WriteString(prefix + "\t\t" + name + ".push_back(" + varName + ");\n")
 		buf.WriteString(prefix + "\t" + "}\n")
 		buf.WriteString(prefix + "}\n")
 	default:
