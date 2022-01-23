@@ -202,6 +202,29 @@ func HelloStruct1(req HelloStruct1Req) (resp HelloStruct1Resp) {
 	return resp
 }
 
+type Hello_Struct2Req struct {
+	Data []Hello_Struct0ReqL1
+}
+
+func Hello_Struct2(req Hello_Struct2Req) Hello_Struct2Req {
+	expect := Hello_Struct2Req{
+		Data: []Hello_Struct0ReqL1{
+			{
+				Name: "n2",
+				Age:  1,
+			},
+			{
+				Name: "n8",
+				Age:  9,
+			},
+		},
+	}
+	if !reflect.DeepEqual(req, expect) {
+		panic("Hello_Struct2")
+	}
+	return req
+}
+
 func Hello_Block(s string) (i int) {
 	time.Sleep(time.Second)
 	return len(s)

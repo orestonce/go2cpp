@@ -44,6 +44,7 @@ func TestGo2cppContext_Generate1(t *testing.T) {
 
 	ctx.Generate1(testdata.Hello_Struct0)
 	ctx.Generate1(testdata.HelloStruct1)
+	ctx.Generate1(testdata.Hello_Struct2)
 	ctx.Generate1(testdata.Hello_Block)
 
 	ctx.Generate1(testdata.Hello_OutPkg)
@@ -92,25 +93,26 @@ void assert_ok(bool ok, std::string tag)
 void testHello_StringXXX();
 void testHello_Slice0();
 void testHello_Struct0();
+void testHello_Struct2();
 
 int main()
 {
 	std::cout << "begin go2cpp test:" << std::endl;
 	assert_ok(Hello_BoolTrue(true) == true, "Hello_BoolTrue");
 	assert_ok(Hello_BoolFalse(false) == false, "Hello_BoolFalse");
-
+	
 	assert_ok(Hello_Int8Max(127) == 127, "Hello_Int8Max");
 	assert_ok(Hello_Int8Min(-128) == -128, "Hello_Int8Min");
 	assert_ok(Hello_Int8Common(12) == 12, "Hello_Int8Common");
-
+	
 	assert_ok(Hello_Uint8Max(uint8_t(255)) == uint8_t(255), "Hello_Uint8Max");
 	assert_ok(Hello_Uint8Min(uint8_t(0)) == uint8_t(0), "Hello_Uint8Min");
 	assert_ok(Hello_Uint8Common(uint8_t(95)) == uint8_t(95), "Hello_Uint8Common");
-
+	
 	assert_ok(Hello_Int32Max(int32_t(2147483647)) == int32_t(2147483647), "Hello_Int32Max");
 	assert_ok(Hello_Int32Min(int32_t(-2147483648)) == int32_t(-2147483648), "Hello_Int32Min");
 	assert_ok(Hello_Int32Common(int32_t(10086)) == int32_t(10086), "Hello_Int32Common");
-
+	
 	assert_ok(Hello_Uint32Max(uint32_t(4294967295)) == uint32_t(4294967295), "Hello_Uint32Max");
 	assert_ok(Hello_Uint32Min(uint32_t(0)) == uint32_t(0), "Hello_Uint32Min");
 	assert_ok(Hello_Uint32Common(uint32_t(1001011)) == uint32_t(1001011), "Hello_Uint32Common");
@@ -120,10 +122,11 @@ int main()
 	assert_ok(Hello_IntCommon(int(0x12345678)) == int(0x12345678), "Hello_IntCommon");
 	
 	testHello_StringXXX();
-
+	
 	testHello_Slice0();
 	
 	testHello_Struct0();
+	testHello_Struct2();
 	
 	std::cout << "end go2cpp test." << std::endl;
 }
@@ -202,5 +205,27 @@ void testHello_Struct0()
 	if (after.Name2 != "Name2") { ok = false; }
 	
 	assert_ok(ok, "Hello_Struct0");
+}
+
+void testHello_Struct2()
+{
+	Hello_Struct2Req origin;
+	Hello_Struct0ReqL1 data;
+	data.Name = "n2";
+	data.Age  = 1;
+	origin.Data.push_back(data);
+	
+	data.Name = "n8";
+	data.Age  = 9;
+	origin.Data.push_back(data);
+	
+	Hello_Struct2Req after = Hello_Struct2(origin);
+
+	assert_ok(after.Data.size() == 2, "Hello_Struct2.size");
+	assert_ok(after.Data[0].Name == "n2", "Hello_Struct2.0.Name");
+	assert_ok(after.Data[0].Age == 1, "Hello_Struct2.0.Age");
+
+	assert_ok(after.Data[1].Name == "n8", "Hello_Struct2.1.Name");
+	assert_ok(after.Data[1].Age == 9, "Hello_Struct2.1.Name");
 }
 `
