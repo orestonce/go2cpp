@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"strconv"
 )
 
 func Hello_EmptyArg() {
@@ -118,7 +119,8 @@ func Hello_IntMax(a int) int {
 
 func Hello_IntMin(a int) int {
 	if a != -2147483648 {
-		panic("Hello_IntMin")
+
+		panic("Hello_IntMin " + strconv.Itoa(a))
 	}
 	return a
 }
@@ -232,4 +234,29 @@ func Hello_Block(s string) (i int) {
 
 func Hello_OutPkg(inArg sort.IntSlice) (outArg unicode.Range32){
 	return outArg
+}
+
+type Struct3_L2 struct {
+	Id int
+}
+
+type Struct3_L1 struct {
+	L2 Struct3_L2
+}
+
+type Struct3_L0 struct {
+	S []Struct3_L1
+}
+
+func Hello_Struct3(req Struct3_L0) (resp Struct3_L0){
+	if len(req.S) != 2 {
+		panic("Hello_StructL0 1")
+	}
+	if req.S[0].L2.Id != 1 {
+		panic(`Hello_StructL0 2`)
+	}
+	if req.S[1].L2.Id != 2 {
+		panic(`Hello_StructL0 3`)
+	}
+	return req
 }

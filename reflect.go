@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"reflect"
 	"runtime"
 	"sort"
 	"strconv"
 	"strings"
+	"os"
+	"path/filepath"
+	"os/exec"
 )
 
 type Go2cppContext struct {
@@ -164,6 +164,14 @@ func (this *Go2cppContext) GetDotGoContent() []byte {
 }
 
 func (this *Go2cppContext) MustCreate386LibraryInDir(dir string) {
+	this.mustCreateLibrary(dir, "386")
+}
+
+func (this *Go2cppContext) MustCreateAmd64LibraryInDir(dir string) {
+	this.mustCreateLibrary(dir, "amd64")
+}
+
+func (this *Go2cppContext) mustCreateLibrary(dir string, goarch string) {
 	_, err := os.Stat(dir)
 	if err != nil {
 		err = os.MkdirAll(dir, 0777)
@@ -174,7 +182,7 @@ func (this *Go2cppContext) MustCreate386LibraryInDir(dir string) {
 
 	writeFile(filepath.Join(dir, this.req.CppBaseName+"-impl.go"), this.GetDotGoContent())
 	cmd := exec.Command("go", "build", "-buildmode=c-archive", this.req.CppBaseName+"-impl.go")
-	cmd.Env = append(os.Environ(), "CGO_ENABLED=1", "GOARCH=386")
+	cmd.Env = append(os.Environ(), "CGO_ENABLED=1", "GOARCH="+ goarch)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Dir = dir
@@ -188,10 +196,10 @@ func (this *Go2cppContext) MustCreate386LibraryInDir(dir string) {
 		panic(err)
 	}
 	writeFile(filepath.Join(dir, this.req.CppBaseName+".cpp"), this.GetDotCppContent(implDotHContent))
-	err = os.Remove(filepath.Join(dir, this.req.CppBaseName+"-impl.go"))
-	if err != nil {
-		panic(err)
-	}
+	//err = os.Remove(filepath.Join(dir, this.req.CppBaseName+"-impl.go"))
+	//if err != nil {
+	//	panic(err)
+	//}
 	err = os.Remove(filepath.Join(dir, this.req.CppBaseName+"-impl.h"))
 	if err != nil {
 		panic(err)
@@ -585,9 +593,8 @@ func (this *Go2cppContext) cppTypeDeclare(fnType reflect.Type) {
 			if ok {
 				return
 			}
-			this.cppTypeDeclareMap[typeName] = struct{}{}
 			declareTypeBefore(in.Elem())
-			typeList = append(typeList, in.Elem())
+			//typeList = append(typeList, in.Elem())
 		default:
 			panic("cppTypeDeclare " + in.Kind().String())
 		}
