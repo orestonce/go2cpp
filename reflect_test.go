@@ -2,17 +2,19 @@ package go2cpp
 
 import (
 	"github.com/orestonce/go2cpp/internal/testdata"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
-	"io/ioutil"
 )
 
 func TestGo2cppContext_Generate1(t *testing.T) {
-	ctx := NewGo2cppContext(NewGo2cppContextReq{
-		CppBaseName: "InProcessRpc",
+	ctx := NewGo2cppContext(NewGo2cppContext_Req{
+		CppBaseName:                 "InProcessRpc",
+		EnableQtClass_RunOnUiThread: false,
 	})
+
 	ctx.Generate1(testdata.Hello_EmptyArg)
 	ctx.Generate1(testdata.Hello_BoolTrue)
 	ctx.Generate1(testdata.Hello_BoolFalse)
@@ -77,6 +79,7 @@ func TestGo2cppContext_Generate1(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+	os.RemoveAll("tmp")
 }
 
 const mainCpp = `

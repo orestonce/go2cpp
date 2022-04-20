@@ -1,165 +1,80 @@
 package go2cpp
 
-import (
-	"bytes"
-)
-
-func (this *Go2cppContext) appendQtIncludeH(qtH *bytes.Buffer) {
-	qtH.WriteString(`#include <QThreadPool>
-#include <QObject>
-`)
-	for _, hName := range this.req.QtIncludeList {
-		qtH.WriteString("#include <" + hName + ">\n")
-	}
-}
-
-func (this *Go2cppContext) appendQtDotHDefine(qtH *bytes.Buffer) {
-	declear1 := func(qtCfg qtMethodCfg, buf *bytes.Buffer) { // signal
-		buf.WriteString("signal_" + qtCfg.methodName + "_start(")
-		for idx := 0; idx < qtCfg.methodType.NumIn(); idx++ {
-			in := qtCfg.methodType.In(idx)
-			if idx > 0 {
-				buf.WriteString(", ")
-			}
-			buf.WriteString(this.goType2Cpp(in))
-		}
-		buf.WriteString(")")
-	}
-
-	qtH.WriteString(`
-// qt相关接口
-class GoCallObject : public ` + this.req.QtExtendBaseClass + `
+const dotHContent = `
+// Qt
+class RunOnUiThread : public QObject
 {
     Q_OBJECT
 public:
-    explicit GoCallObject(QObject *parent = 0);
-    ~GoCallObject();
-    static void RegisterMetaType();
-`)
-	qtH.WriteString("signals:	// 暴露给外部的接口\n")
-	for _, qtCfg := range this.qtMethodList {
-		qtH.WriteString("\tvoid ")
-		declear1(qtCfg, qtH)
-		qtH.WriteString(";\n")
-	}
+    explicit RunOnUiThread(QObject *parent = nullptr);
+    virtual ~RunOnUiThread();
 
-	qtH.WriteString("protected slots:  // 已自动确保以下调用在ui线程, 由子类重写可直接操作ui\n")
-	for _, qtCfg := range this.qtMethodList {
-		qtH.WriteString("\tvirtual void ")
-		this.qtDeclear3(qtCfg, qtH)
-		qtH.WriteString("{}\n")
-	}
-	qtH.WriteString("signals:	// 内部实现需要的信号\n")
-	for _, qtCfg := range this.qtMethodList {
-		qtH.WriteString("\tvoid ")
-		this.qtDeclear2(qtCfg, qtH)
-		qtH.WriteString(";\n")
-	}
-	qtH.WriteString(`private:
-	QThreadPool m_pool;
+    // !!!注意,fn可能被调用,也可能由于RunOnUiThread被析构不被调用
+    // 依赖于在fn里delete回收内存, 关闭文件等操作可能造成内存泄露
+    void AddRunFnOnUiThread(std::function<void ()> fn);
+signals:
+    void signal_newFn();
+private slots:
+    void slot_newFn();
+private:
+    bool m_done;
+    QVector<std::function<void()>> m_funcList;
+    QMutex m_Mutex;
+    QThreadPool m_pool;
 };
-
-GoCallObject* GetDefaultGoCallObject();
-`)
-}
-
-func (this *Go2cppContext) appendQtIncludeCpp(buf *bytes.Buffer) {
-	buf.WriteString(`#include <QtConcurrent/QtConcurrent>
-#include <QMetaType>
-`)
-
-}
-
-func (this *Go2cppContext) appendQtDotCppDefine(qtCpp *bytes.Buffer) {
-	qtCpp.WriteString(`
-
-GoCallObject::GoCallObject(QObject *parent) : `+this.req.QtExtendBaseClass+`(parent)
+`
+const dotCppContent = `
+RunOnUiThread::RunOnUiThread(QObject *parent) : QObject(parent), m_done(false)
 {
-`)
-	for _, qtCfg := range this.qtMethodList {
-		qtCpp.WriteString("\t" + `connect(this, SIGNAL(`)
-		this.qtDeclear2(qtCfg, qtCpp)
-		qtCpp.WriteString(`), this, SLOT(`)
-		this.qtDeclear3(qtCfg, qtCpp)
-		qtCpp.WriteString(`));
-    connect(this, &GoCallObject::signal_` + qtCfg.methodName + `_start, [this](`)
-		for idx := 0; idx < qtCfg.methodType.NumIn(); idx++ {
-			if idx > 0 {
-				qtCpp.WriteString(", ")
-			}
-			qtCpp.WriteString(this.goType2Cpp(qtCfg.methodType.In(idx)) + " " + this.inArgName(idx))
-		}
-		qtCpp.WriteString(`){
-        QtConcurrent::run(&this->m_pool, [this`)
-		for idx := 0; idx < qtCfg.methodType.NumIn(); idx++ {
-			qtCpp.WriteString(", " + this.inArgName(idx))
-		}
-		qtCpp.WriteString(`](){
-` + "\t\t\t")
-		if qtCfg.returnType != nil {
-			qtCpp.WriteString(this.goType2Cpp(qtCfg.returnType) + " result = ")
-		}
-		qtCpp.WriteString(qtCfg.methodName + "_Block(")
-		for idx := 0; idx < qtCfg.methodType.NumIn(); idx++ {
-			if idx > 0 {
-				qtCpp.WriteString(",")
-			}
-			qtCpp.WriteString(this.inArgName(idx))
-		}
-		qtCpp.WriteString(");\n")
-		qtCpp.WriteString("\t\t\temit this->_" + qtCfg.methodName + "_end(")
-		if qtCfg.returnType != nil {
-			qtCpp.WriteString("result")
-		}
-		qtCpp.WriteString(");\n")
-		qtCpp.WriteString("\t\t" + `});
-    });
-`)
-	}
-	qtCpp.WriteString(`}
+    // 用signal里的Qt::QueuedConnection 将多线程里面的函数转化到ui线程里调用
+    connect(this, SIGNAL(signal_newFn()), this, SLOT(slot_newFn()), Qt::QueuedConnection);
+}
 
-GoCallObject::~GoCallObject()
+RunOnUiThread::~RunOnUiThread()
 {
-    m_pool.waitForDone();
+    {
+        QMutexLocker lk(&this->m_Mutex);
+        this->m_done = true;
+        this->m_funcList.clear();
+    }
+    this->m_pool.clear();
+    this->m_pool.waitForDone();
 }
 
-GoCallObject* GetDefaultGoCallObject()
+void RunOnUiThread::slot_newFn()
 {
-	static GoCallObject obj;
-    return &obj;
+    QVector<std::function<void ()>> fn_vector;
+    {
+        QMutexLocker lk(&this->m_Mutex);
+        if (this->m_funcList.empty() || this->m_done) {
+            return;
+        }
+        fn_vector.swap(this->m_funcList);
+    }
+
+    for(std::function<void ()>& fn : fn_vector)
+    {
+        bool v_done = false;
+        {
+            QMutexLocker lk(&this->m_Mutex);
+            v_done = this->m_done;
+        }
+        if (v_done) { // 快速结束
+            return;
+        }
+        fn();
+    }
 }
 
-void GoCallObject::RegisterMetaType()
+void RunOnUiThread::AddRunFnOnUiThread(std::function<void ()> fn)
 {
-`)
-	existsMap := map[string]struct{}{}
-	for _, qtCfg := range this.qtMethodList {
-		if qtCfg.returnType == nil {
-			continue
-		}
-		name := this.goType2Cpp(qtCfg.returnType)
-		_, ok := existsMap[name]
-		if ok {
-			continue
-		}
-		qtCpp.WriteString("\t" + `qRegisterMetaType<` + this.goType2Cpp(qtCfg.returnType) + `>("` + name + `");` + "\n")
-	}
-	qtCpp.WriteString(`}
-`)
+    {
+        QMutexLocker lk(&this->m_Mutex);
+        if (this->m_done) {
+            return;
+        }
+        m_funcList.push_back(fn);
+    }
+    emit this->signal_newFn();
 }
-
-func (this *Go2cppContext) qtDeclear2(qtCfg qtMethodCfg, buf *bytes.Buffer) { // signal
-	buf.WriteString("_" + qtCfg.methodName + "_end(")
-	if qtCfg.returnType != nil {
-		buf.WriteString(this.goType2Cpp(qtCfg.returnType))
-	}
-	buf.WriteString(")")
-}
-
-func (this *Go2cppContext) qtDeclear3(qtCfg qtMethodCfg, buf *bytes.Buffer) { // slot
-	buf.WriteString("slot_" + qtCfg.methodName + "_end(")
-	if qtCfg.returnType != nil {
-		buf.WriteString(this.goType2Cpp(qtCfg.returnType))
-	}
-	buf.WriteString(")")
-}
+`

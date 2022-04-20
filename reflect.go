@@ -5,44 +5,32 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"sort"
 	"strconv"
 	"strings"
-	"os"
-	"path/filepath"
-	"os/exec"
 )
 
 type Go2cppContext struct {
-	req               NewGo2cppContextReq
+	req               NewGo2cppContext_Req
 	importMap         map[string]struct{}
 	cppTypeDeclareMap map[string]struct{}
 	dotH              bytes.Buffer
 	dotCpp            bytes.Buffer
 	dotGo             bytes.Buffer
-	qtMethodList      []qtMethodCfg
 	idx               int
 }
 
-type qtMethodCfg struct {
-	methodType reflect.Type
-	methodName string // TrimSuffix(x, "_Block")
-	returnType reflect.Type
+type NewGo2cppContext_Req struct {
+	CppBaseName                 string
+	EnableQtClass_RunOnUiThread bool
 }
 
-type NewGo2cppContextReq struct {
-	CppBaseName       string
-	EnableQt          bool
-	QtExtendBaseClass string
-	QtIncludeList     []string
-}
-
-func NewGo2cppContext(req NewGo2cppContextReq) *Go2cppContext {
-	if req.EnableQt && req.QtExtendBaseClass == `` {
-		req.QtExtendBaseClass = `QObject`
-	}
+func NewGo2cppContext(req NewGo2cppContext_Req) *Go2cppContext {
 	return &Go2cppContext{
 		req:               req,
 		importMap:         map[string]struct{}{},
@@ -59,19 +47,6 @@ func (this *Go2cppContext) Generate1(methodFn interface{}) {
 	this.idx = 0
 	fnType := reflect.TypeOf(methodFn)
 	pkgName, shortPkgName, methodName := splitAndValidatePkg(runtime.FuncForPC(reflect.ValueOf(methodFn).Pointer()).Name())
-
-	if strings.HasSuffix(methodName, "_Block") { // Qt阻塞式调用
-		this.qtMethodList = append(this.qtMethodList, qtMethodCfg{
-			methodType: fnType,
-			methodName: strings.TrimSuffix(methodName, "_Block"),
-			returnType: func() reflect.Type {
-				if fnType.NumOut() != 1 {
-					return nil
-				}
-				return fnType.Out(0)
-			}(),
-		})
-	}
 
 	this.goFnDeclare(pkgName, shortPkgName, methodName, fnType)
 	this.cppTypeDeclare(fnType)
@@ -115,12 +90,9 @@ func (this *Go2cppContext) GetDotCppContent(implDotHContent []byte) []byte {
 	buf.WriteString(`#include ` + strconv.Quote(this.req.CppBaseName+".h") + "\n")
 	buf.Write(implDotHContent)
 	buf.WriteString("\n\n")
-	if this.req.EnableQt {
-		this.appendQtIncludeCpp(buf)
-	}
-	buf.WriteString(this.dotCpp.String())
-	if this.req.EnableQt {
-		this.appendQtDotCppDefine(buf)
+	buf.WriteString(this.dotCpp.String() + "\n")
+	if this.req.EnableQtClass_RunOnUiThread {
+		buf.WriteString(dotCppContent)
 	}
 	return buf.Bytes()
 }
@@ -131,15 +103,21 @@ func (this *Go2cppContext) GetDotHContent() []byte {
 	buf.WriteString("#include <string>\n")
 	buf.WriteString("#include <vector>\n")
 	buf.WriteString("#include <cstdint>\n")
-	if this.req.EnableQt {
-		buf.WriteString("//在xxx.pro 内部增加静态库的链接声明\n")
-		buf.WriteString("//LIBS += -L$$PWD -l" + this.req.CppBaseName + "-impl\n")
-		this.appendQtIncludeH(buf)
+	if this.req.EnableQtClass_RunOnUiThread {
+		buf.WriteString(`#include <QObject>
+#include <QVector>
+#include <QThreadPool>
+#include <QMutex>
+#include <QMutexLocker>
+#include <functional>
+`)
 	}
+	buf.WriteString("//Qt Creator 需要在xxx.pro 内部增加静态库的链接声明\n")
+	buf.WriteString("//LIBS += -L$$PWD -l" + this.req.CppBaseName + "-impl\n")
 	buf.WriteString("\n")
 	buf.WriteString(this.dotH.String())
-	if this.req.EnableQt {
-		this.appendQtDotHDefine(buf)
+	if this.req.EnableQtClass_RunOnUiThread {
+		buf.WriteString(dotHContent)
 	}
 	return buf.Bytes()
 }
@@ -182,7 +160,7 @@ func (this *Go2cppContext) mustCreateLibrary(dir string, goarch string) {
 
 	writeFile(filepath.Join(dir, this.req.CppBaseName+"-impl.go"), this.GetDotGoContent())
 	cmd := exec.Command("go", "build", "-buildmode=c-archive", this.req.CppBaseName+"-impl.go")
-	cmd.Env = append(os.Environ(), "CGO_ENABLED=1", "GOARCH="+ goarch)
+	cmd.Env = append(os.Environ(), "CGO_ENABLED=1", "GOARCH="+goarch)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Dir = dir
