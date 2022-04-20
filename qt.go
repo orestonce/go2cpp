@@ -9,9 +9,10 @@ public:
     explicit RunOnUiThread(QObject *parent = nullptr);
     virtual ~RunOnUiThread();
 
+    void AddRunFnOn_OtherThread(std::function<void()> fn);
     // !!!注意,fn可能被调用,也可能由于RunOnUiThread被析构不被调用
     // 依赖于在fn里delete回收内存, 关闭文件等操作可能造成内存泄露
-    void AddRunFnOnUiThread(std::function<void ()> fn);
+    void AddRunFnOn_UiThread(std::function<void ()> fn);
 signals:
     void signal_newFn();
 private slots:
@@ -24,6 +25,10 @@ private:
 };
 `
 const dotCppContent = `
+// Qt:
+#include <QMutexLocker>
+#include <QtConcurrent/QtConcurrent>
+
 RunOnUiThread::RunOnUiThread(QObject *parent) : QObject(parent), m_done(false)
 {
     // 用signal里的Qt::QueuedConnection 将多线程里面的函数转化到ui线程里调用
@@ -39,6 +44,11 @@ RunOnUiThread::~RunOnUiThread()
     }
     this->m_pool.clear();
     this->m_pool.waitForDone();
+}
+
+void RunOnUiThread::AddRunFnOn_OtherThread(std::function<void ()> fn)
+{
+    QtConcurrent::run(&this->m_pool, fn);
 }
 
 void RunOnUiThread::slot_newFn()
@@ -66,7 +76,7 @@ void RunOnUiThread::slot_newFn()
     }
 }
 
-void RunOnUiThread::AddRunFnOnUiThread(std::function<void ()> fn)
+void RunOnUiThread::AddRunFnOn_UiThread(std::function<void ()> fn)
 {
     {
         QMutexLocker lk(&this->m_Mutex);
