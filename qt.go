@@ -48,6 +48,10 @@ RunOnUiThread::~RunOnUiThread()
 
 void RunOnUiThread::AddRunFnOn_OtherThread(std::function<void ()> fn)
 {
+    QMutexLocker lk(&this->m_Mutex);
+    if (this->m_done) {
+        return;
+    }
     QtConcurrent::run(&this->m_pool, fn);
 }
 
