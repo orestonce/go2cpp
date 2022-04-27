@@ -174,10 +174,10 @@ func (this *Go2cppContext) mustCreateLibrary(dir string, goarch string) {
 		panic(err)
 	}
 	writeFile(filepath.Join(dir, this.req.CppBaseName+".cpp"), this.GetDotCppContent(implDotHContent))
-	//err = os.Remove(filepath.Join(dir, this.req.CppBaseName+"-impl.go"))
-	//if err != nil {
-	//	panic(err)
-	//}
+	err = os.Remove(filepath.Join(dir, this.req.CppBaseName+"-impl.go"))
+	if err != nil {
+		panic(err)
+	}
 	err = os.Remove(filepath.Join(dir, this.req.CppBaseName+"-impl.h"))
 	if err != nil {
 		panic(err)
