@@ -28,6 +28,7 @@ type Go2cppContext struct {
 type NewGo2cppContext_Req struct {
 	CppBaseName                 string
 	EnableQtClass_RunOnUiThread bool
+	EnableQtClass_Toast         bool
 }
 
 func NewGo2cppContext(req NewGo2cppContext_Req) *Go2cppContext {
@@ -92,7 +93,10 @@ func (this *Go2cppContext) GetDotCppContent(implDotHContent []byte) []byte {
 	buf.WriteString("\n\n")
 	buf.WriteString(this.dotCpp.String() + "\n")
 	if this.req.EnableQtClass_RunOnUiThread {
-		buf.WriteString(dotCppContent)
+		buf.WriteString(runOnUiThread_dotCpp)
+	}
+	if this.req.EnableQtClass_Toast {
+		buf.WriteString(toast_dotCpp)
 	}
 	return buf.Bytes()
 }
@@ -103,21 +107,15 @@ func (this *Go2cppContext) GetDotHContent() []byte {
 	buf.WriteString("#include <string>\n")
 	buf.WriteString("#include <vector>\n")
 	buf.WriteString("#include <cstdint>\n")
-	if this.req.EnableQtClass_RunOnUiThread {
-		buf.WriteString(`#include <QObject>
-#include <QVector>
-#include <QThreadPool>
-#include <QMutex>
-#include <QMutexLocker>
-#include <functional>
-`)
-	}
 	buf.WriteString("//Qt Creator 需要在xxx.pro 内部增加静态库的链接声明\n")
 	buf.WriteString("//LIBS += -L$$PWD -l" + this.req.CppBaseName + "-impl\n")
 	buf.WriteString("\n")
 	buf.WriteString(this.dotH.String())
 	if this.req.EnableQtClass_RunOnUiThread {
-		buf.WriteString(dotHContent)
+		buf.WriteString(runOnUiThread_dotH)
+	}
+	if this.req.EnableQtClass_Toast {
+		buf.WriteString(toast_dotH)
 	}
 	return buf.Bytes()
 }

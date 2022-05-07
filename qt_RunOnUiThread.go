@@ -1,7 +1,13 @@
 package go2cpp
 
-const dotHContent = `
-// Qt
+const runOnUiThread_dotH = `
+#include <QObject>
+#include <QVector>
+#include <QThreadPool>
+#include <QMutex>
+#include <QMutexLocker>
+#include <functional>
+
 class RunOnUiThread : public QObject
 {
     Q_OBJECT
@@ -24,7 +30,8 @@ private:
     QThreadPool m_pool;
 };
 `
-const dotCppContent = `
+
+const runOnUiThread_dotCpp = `
 // Qt:
 #include <QMutexLocker>
 #include <QtConcurrent/QtConcurrent>

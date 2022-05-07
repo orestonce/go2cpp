@@ -13,6 +13,7 @@ func TestGo2cppContext_Generate1(t *testing.T) {
 	ctx := NewGo2cppContext(NewGo2cppContext_Req{
 		CppBaseName:                 "InProcessRpc",
 		EnableQtClass_RunOnUiThread: false,
+		EnableQtClass_Toast:         false,
 	})
 
 	ctx.Generate1(testdata.Hello_EmptyArg)
