@@ -42,7 +42,7 @@ private:
 };
 `
 
-const toast_dotCpp = `#include "toast.h"
+const toast_dotCpp = `
 #include <QTimer>
 #include <QLabel>
 #include <QWidget>
