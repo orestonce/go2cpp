@@ -67,7 +67,7 @@ func (this *Go2cppContext) Generate1(methodFn interface{}) {
 		kind := out.Kind()
 		buf := &this.dotCpp
 		switch kind {
-		case reflect.Bool, reflect.Int8, reflect.Uint8, reflect.Int, reflect.Int32, reflect.Uint32, reflect.String, reflect.Struct, reflect.Slice:
+		case reflect.Bool, reflect.Int8, reflect.Uint8, reflect.Int, reflect.Int32, reflect.Uint32, reflect.String, reflect.Struct, reflect.Slice, reflect.Map:
 			buf.WriteString("\t" + this.goType2Cpp(out) + " retValue;\n")
 			buf.WriteString("\t" + "int outIdx = 0;\n")
 			this.cppDecode("\t", "retValue", out)
@@ -107,6 +107,7 @@ func (this *Go2cppContext) GetDotHContent() []byte {
 	buf.WriteString("#include <string>\n")
 	buf.WriteString("#include <vector>\n")
 	buf.WriteString("#include <cstdint>\n")
+	buf.WriteString("#include <map>\n")
 	buf.WriteString("//Qt Creator 需要在xxx.pro 内部增加静态库的链接声明\n")
 	buf.WriteString("//LIBS += -L$$PWD -l" + this.req.CppBaseName + "-impl\n")
 	buf.WriteString("\n")
@@ -233,6 +234,8 @@ func (this *Go2cppContext) goType2Cpp(out reflect.Type) string {
 		return out.Name()
 	case reflect.Slice:
 		return "std::vector<" + this.goType2Cpp(out.Elem()) + ">"
+	case reflect.Map:
+		return "std::map<" + this.goType2Cpp(out.Key()) + ", " + this.goType2Cpp(out.Elem()) + ">"
 	default:
 		panic("goType2Cpp: " + out.Kind().String())
 	}
@@ -288,6 +291,22 @@ func (this *Go2cppContext) cppDecode(prefix string, name string, fType reflect.T
 		buf.WriteString(prefix + "\t\t" + name + ".push_back(" + varName2 + ");\n")
 		buf.WriteString(prefix + "\t" + "}\n")
 		buf.WriteString(prefix + "}\n")
+	case reflect.Map:
+		buf.WriteString(prefix + "{\n")
+		varName0 := this.getNextVarName()
+		buf.WriteString(prefix + "\t" + "uint32_t " + varName0 + " = 0;\n")
+		decodeUint32(prefix+"\t", varName0)
+		varName1 := this.getNextVarName()
+		buf.WriteString(prefix + "\t" + "for (uint32_t " + varName1 + " = 0; " + varName1 + " < " + varName0 + "; " + varName1 + "++) {\n")
+		kName := this.getNextVarName()
+		buf.WriteString(prefix + "\t\t" + this.goType2Cpp(fType.Key()) + " " + kName + ";\n")
+		this.cppDecode(prefix+"\t\t", kName, fType.Key())
+		vName := this.getNextVarName()
+		buf.WriteString(prefix + "\t\t" + this.goType2Cpp(fType.Elem()) + " " + vName + ";\n")
+		this.cppDecode(prefix+"\t\t", vName, fType.Elem())
+		buf.WriteString(prefix + "\t\t" + name + "[" + kName + "] = " + vName + ";\n")
+		buf.WriteString(prefix + "\t" + "}\n")
+		buf.WriteString(prefix + "}\n")
 	default:
 		panic("genGo " + kind.String())
 	}
@@ -323,6 +342,9 @@ func (this *Go2cppContext) goFnDeclare(pkgName string, shortPkgName string, meth
 				this.goDecode(this.inArgName(idx), fnType.In(idx))
 			case reflect.Struct, reflect.Slice:
 				buf.WriteString("var " + this.inArgName(idx) + " " + in.String() + "\n")
+				this.goDecode(this.inArgName(idx), fnType.In(idx))
+			case reflect.Map:
+				buf.WriteString("var " + this.inArgName(idx) + " = " + in.String() + "{}\n")
 				this.goDecode(this.inArgName(idx), fnType.In(idx))
 			default:
 				panic("genGo " + kind.String())
@@ -416,6 +438,22 @@ func (this *Go2cppContext) goDecode(name string, fType reflect.Type) {
 		this.goDecode(name+"["+varName2+"]", fType.Elem())
 		buf.WriteString("}\n")
 		buf.WriteString("}\n")
+	case reflect.Map:
+		buf.WriteString("{\n")
+		varName := this.getNextVarName()
+		buf.WriteString("var " + varName + " int\n")
+		decodeInt(varName, "int")
+		varName2 := this.getNextVarName()
+		buf.WriteString("for " + varName2 + " := 0; " + varName2 + " < " + varName + "; " + varName2 + "++ {\n")
+		kName := this.getNextVarName()
+		vName := this.getNextVarName()
+		buf.WriteString("var " + kName + " " + fType.Key().String() + ";\n")
+		buf.WriteString("var " + vName + " " + fType.Elem().String() + ";\n")
+		this.goDecode(kName, fType.Key())
+		this.goDecode(vName, fType.Elem())
+		buf.WriteString(name + "[" + kName + "] = " + vName + ";\n")
+		buf.WriteString("}\n")
+		buf.WriteString("}\n")
 	default:
 		panic("genGo " + kind.String())
 	}
@@ -472,6 +510,16 @@ func (this *Go2cppContext) goEncode(name string, fType reflect.Type) {
 		this.goEncode(name+"["+varName+"]", fType.Elem())
 		buf.WriteString("}\n")
 		buf.WriteString("}\n")
+	case reflect.Map:
+		buf.WriteString("{\n")
+		encodeUint32("len(" + name + ")")
+		kName := this.getNextVarName()
+		vName := this.getNextVarName()
+		buf.WriteString("for " + kName + ", " + vName + " := range " + name + "{\n")
+		this.goEncode(kName, fType.Key())
+		this.goEncode(vName, fType.Elem())
+		buf.WriteString("}\n")
+		buf.WriteString("}\n")
 	default:
 		panic("genGo " + kind.String())
 	}
@@ -516,8 +564,19 @@ func (this *Go2cppContext) cppEncode(prefix string, name string, fType reflect.T
 		buf.WriteString(prefix + "\t" + `uint32_t ` + varName + ` = ` + name + ".size();\n")
 		encodeUint32(prefix+"\t", varName)
 		varName2 := this.getNextVarName()
-		buf.WriteString(prefix + "\tfor (uint32_t " + varName2 + "=0; " + varName2 + " < " + varName + "; " + varName2 + "++) {\n")
+		buf.WriteString(prefix + "\tfor (uint32_t " + varName2 + "=0; " + varName2 + " < " + varName + "; ++" + varName2 + ") {\n")
 		this.cppEncode(prefix+"\t\t", name+"["+varName2+"]", fType.Elem())
+		buf.WriteString(prefix + "\t}\n")
+		buf.WriteString(prefix + "}\n")
+	case reflect.Map:
+		buf.WriteString(prefix + "{\n")
+		varName := this.getNextVarName()
+		buf.WriteString(prefix + "\t" + `uint32_t ` + varName + ` = ` + name + ".size();\n")
+		encodeUint32(prefix+"\t", varName)
+		itName := this.getNextVarName()
+		buf.WriteString(prefix + "\tfor("+this.goType2Cpp(fType)+"::iterator " + itName + " = " + name + ".begin(); " + itName + " != " + name + ".end(); ++" + itName + ") {\n")
+		this.cppEncode(prefix+"\t\t", itName+"->first", fType.Key())
+		this.cppEncode(prefix+"\t\t", itName+"->second", fType.Elem())
 		buf.WriteString(prefix + "\t}\n")
 		buf.WriteString(prefix + "}\n")
 	default:
@@ -570,7 +629,15 @@ func (this *Go2cppContext) cppTypeDeclare(fnType reflect.Type) {
 				return
 			}
 			declareTypeBefore(in.Elem())
-			//typeList = append(typeList, in.Elem())
+		case reflect.Map:
+			for _, one := range []reflect.Type{in.Key(), in.Elem()} {
+				typeName = this.goType2Cpp(one)
+				_, ok := this.cppTypeDeclareMap[typeName]
+				if ok {
+					continue
+				}
+				declareTypeBefore(one)
+			}
 		default:
 			panic("cppTypeDeclare " + in.Kind().String())
 		}

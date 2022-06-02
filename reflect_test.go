@@ -53,6 +53,7 @@ func TestGo2cppContext_Generate1(t *testing.T) {
 
 	ctx.Generate1(testdata.Hello_OutPkg)
 	ctx.Generate1(testdata.Hello_Struct3)
+	ctx.Generate1(testdata.Hello_Map)
 
 	ctx.MustCreateAmd64LibraryInDir("tmp/temp1")
 	//ctx.MustCreate386LibraryInDir("tmp/temp1")
@@ -102,6 +103,7 @@ void testHello_Slice0();
 void testHello_Struct0();
 void testHello_Struct2();
 void testHello_Struct3();
+void testHello_Map();
 
 int main()
 {
@@ -136,6 +138,7 @@ int main()
 	testHello_Struct0();
 	testHello_Struct2();
 	testHello_Struct3();
+	testHello_Map();
 	
 	std::cout << "end go2cpp test." << std::endl;
 }
@@ -254,5 +257,28 @@ void testHello_Struct3()
 	assert_ok(resp.S.size() == 2, "testHello_Struct3.Size");
 	assert_ok(resp.S[0].L2.Id == 1, "testHello_Struct3.[1]");
 	assert_ok(resp.S[1].L2.Id == 2, "testHello_Struct3.[2]");
+}
+
+void testHello_Map()
+{
+	std::map<std::string, Struct4> in;
+
+	Struct4 v1;
+	v1.V = "1";
+	v1.I = 1;
+
+	Struct4 v2;
+	v2.V = "2";
+	v2.I = 2;
+
+	in[v1.V] = v1;
+	in[v2.V] = v2;
+
+	std::map<int, Struct4> out = Hello_Map(in);
+	assert_ok(out.size() == 2, "testHello_Map.out.size");
+	assert_ok(out[1].I == 1, "testHello_Map.out[1].I");
+	assert_ok(out[1].V == std::string("1"), "testHello_Map.out[1].V");
+	assert_ok(out[2].I == 2, "testHello_Map.out[2].I");
+	assert_ok(out[2].V == std::string("2"), "testHello_Map.out[2].V");
 }
 `

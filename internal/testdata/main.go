@@ -3,10 +3,10 @@ package testdata
 import (
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
-	"strconv"
 )
 
 func Hello_EmptyArg() {
@@ -232,7 +232,7 @@ func Hello_Block(s string) (i int) {
 	return len(s)
 }
 
-func Hello_OutPkg(inArg sort.IntSlice) (outArg unicode.Range32){
+func Hello_OutPkg(inArg sort.IntSlice) (outArg unicode.Range32) {
 	return outArg
 }
 
@@ -248,7 +248,7 @@ type Struct3_L0 struct {
 	S []Struct3_L1
 }
 
-func Hello_Struct3(req Struct3_L0) (resp Struct3_L0){
+func Hello_Struct3(req Struct3_L0) (resp Struct3_L0) {
 	if len(req.S) != 2 {
 		panic("Hello_StructL0 1")
 	}
@@ -259,4 +259,23 @@ func Hello_Struct3(req Struct3_L0) (resp Struct3_L0){
 		panic(`Hello_StructL0 3`)
 	}
 	return req
+}
+
+type Struct4 struct {
+	V string
+	I int
+}
+
+func Hello_Map(m map[string]Struct4) (m2 map[int]Struct4) {
+	if len(m) != 2 {
+		panic("len(m) != 2")
+	}
+	m2 = map[int]Struct4{}
+	for _, v := range m {
+		m2[v.I] = v
+		if v.V != strconv.Itoa(v.I) {
+			panic("v.V " + v.V)
+		}
+	}
+	return m2
 }
