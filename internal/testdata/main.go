@@ -246,6 +246,7 @@ type Struct3_L1 struct {
 
 type Struct3_L0 struct {
 	S []Struct3_L1
+	B bool
 }
 
 func Hello_Struct3(req Struct3_L0) (resp Struct3_L0) {

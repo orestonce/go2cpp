@@ -574,7 +574,7 @@ func (this *Go2cppContext) cppEncode(prefix string, name string, fType reflect.T
 		buf.WriteString(prefix + "\t" + `uint32_t ` + varName + ` = ` + name + ".size();\n")
 		encodeUint32(prefix+"\t", varName)
 		itName := this.getNextVarName()
-		buf.WriteString(prefix + "\tfor("+this.goType2Cpp(fType)+"::iterator " + itName + " = " + name + ".begin(); " + itName + " != " + name + ".end(); ++" + itName + ") {\n")
+		buf.WriteString(prefix + "\tfor(" + this.goType2Cpp(fType) + "::iterator " + itName + " = " + name + ".begin(); " + itName + " != " + name + ".end(); ++" + itName + ") {\n")
 		this.cppEncode(prefix+"\t\t", itName+"->first", fType.Key())
 		this.cppEncode(prefix+"\t\t", itName+"->second", fType.Elem())
 		buf.WriteString(prefix + "\t}\n")
@@ -651,9 +651,35 @@ func (this *Go2cppContext) cppTypeDeclare(fnType reflect.Type) {
 	buf := &this.dotH
 	for _, in := range typeList {
 		if in.Kind() == reflect.Struct {
+			baseTypeNameValue := map[string]string{}
 			buf.WriteString("struct " + this.goType2Cpp(in) + "{\n")
 			for idx1 := 0; idx1 < in.NumField(); idx1++ {
-				buf.WriteString("\t" + this.goType2Cpp(in.Field(idx1).Type) + " " + in.Field(idx1).Name + ";\n")
+				t := in.Field(idx1).Type
+				buf.WriteString("\t" + this.goType2Cpp(t) + " " + in.Field(idx1).Name + ";\n")
+				switch t.Kind() {
+				case reflect.Int8, reflect.Uint8, reflect.Int, reflect.Int32, reflect.Uint32:
+					baseTypeNameValue[in.Field(idx1).Name] = "0"
+				case reflect.Bool:
+					baseTypeNameValue[in.Field(idx1).Name] = "false"
+				}
+			}
+			if len(baseTypeNameValue) > 0 {
+				isFirst := true
+				buf.WriteString("\t" + this.goType2Cpp(in) + "(): ")
+				for idx1 := 0; idx1 < in.NumField(); idx1++ {
+					name := in.Field(idx1).Name
+					value := baseTypeNameValue[name]
+					if value == "" {
+						continue
+					}
+					if isFirst {
+						isFirst = false
+					} else {
+						buf.WriteString(",")
+					}
+					buf.WriteString(name + "(" + value + ")")
+				}
+				buf.WriteString("{}\n")
 			}
 			buf.WriteString("};\n")
 		}
