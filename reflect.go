@@ -707,7 +707,7 @@ func (this *Go2cppContext) cppTypeDeclare(fnType reflect.Type) {
 				t := in.Field(idx1).Type
 				buf.WriteString("\t" + this.goType2Cpp(t) + " " + in.Field(idx1).Name + ";\n")
 				switch t.Kind() {
-				case reflect.Int8, reflect.Uint8, reflect.Int, reflect.Int32, reflect.Uint32:
+				case reflect.Int8, reflect.Uint8, reflect.Int, reflect.Int32, reflect.Uint32, reflect.Float64, reflect.Float32:
 					baseTypeNameValue[in.Field(idx1).Name] = "0"
 				case reflect.Bool:
 					baseTypeNameValue[in.Field(idx1).Name] = "false"
