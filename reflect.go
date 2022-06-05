@@ -284,7 +284,11 @@ func (this *Go2cppContext) cppDecode(prefix string, name string, fType reflect.T
 		sName := this.getNextVarName()
 		buf.WriteString(prefix + "\tstd::string " + sName + " = std::string(out+outIdx, out+outIdx+" + varName + ");\n")
 		buf.WriteString(prefix + "\t" + "outIdx+=" + varName + ";\n")
-		buf.WriteString("sscanf(" + sName + ".c_str(), \"%f\", &" + name + ");\n")
+		fmtS := "%f"
+		if kind == reflect.Float64 {
+			fmtS = "%lf"
+		}
+		buf.WriteString("sscanf(" + sName + ".c_str(), \"" + fmtS + "\", &" + name + ");\n")
 		buf.WriteString(prefix + "}\n")
 	case reflect.Struct:
 		buf.WriteString(prefix + "{\n")
