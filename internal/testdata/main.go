@@ -1,6 +1,7 @@
 package testdata
 
 import (
+	"math"
 	"reflect"
 	"sort"
 	"strconv"
@@ -108,6 +109,20 @@ func Hello_Uint32Common(a uint32) uint32 {
 		panic("Hello_Uint32Common")
 	}
 	return a
+}
+
+func Hello_Float32(f float32) float32 {
+	if math.Abs(float64(f-0.5678)) > 1e-6 {
+		panic("Hello_Float32")
+	}
+	return f + 1234
+}
+
+func Hello_Float64(f float64) float64 {
+	if math.Abs(f-0.5678) > 1e-6 {
+		panic("Hello_Float32")
+	}
+	return f + 1234
 }
 
 func Hello_IntMax(a int) int {

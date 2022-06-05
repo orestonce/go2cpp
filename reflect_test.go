@@ -36,6 +36,9 @@ func TestGo2cppContext_Generate1(t *testing.T) {
 	ctx.Generate1(testdata.Hello_Uint32Min)
 	ctx.Generate1(testdata.Hello_Uint32Common)
 
+	ctx.Generate1(testdata.Hello_Float32)
+	ctx.Generate1(testdata.Hello_Float64)
+
 	//ctx.Generate1(testdata.Hello_IntMax)
 	//ctx.Generate1(testdata.Hello_IntMin)
 	ctx.Generate1(testdata.Hello_IntCommon)
@@ -86,6 +89,7 @@ func TestGo2cppContext_Generate1(t *testing.T) {
 
 const mainCpp = `
 #include "InProcessRpc.h"
+#include <math.h>
 #include <iostream>
 
 void assert_ok(bool ok, std::string tag)
@@ -130,6 +134,9 @@ int main()
 	//assert_ok(Hello_IntMax(int(2147483647)) == int(2147483647), "Hello_IntMax");
 	//assert_ok(Hello_IntMin(int(-2147483648)) == int(-2147483648), "Hello_IntMin");
 	assert_ok(Hello_IntCommon(int(0x12345678)) == int(0x12345678), "Hello_IntCommon");
+
+	assert_ok(fabs(Hello_Float32(0.5678) - 1234.5678) < 1e-6, "Hello_Float32");
+	assert_ok(fabs(Hello_Float64(0.5678) - 1234.5678) < 1e-6, "Hello_Float64");
 	
 	testHello_StringXXX();
 	
