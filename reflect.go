@@ -29,6 +29,7 @@ type NewGo2cppContext_Req struct {
 	CppBaseName                 string
 	EnableQtClass_RunOnUiThread bool
 	EnableQtClass_Toast         bool
+	NotRemoveImplDotGo          bool
 }
 
 func NewGo2cppContext(req NewGo2cppContext_Req) *Go2cppContext {
@@ -173,9 +174,11 @@ func (this *Go2cppContext) mustCreateLibrary(dir string, goarch string) {
 		panic(err)
 	}
 	writeFile(filepath.Join(dir, this.req.CppBaseName+".cpp"), this.GetDotCppContent(implDotHContent))
-	err = os.Remove(filepath.Join(dir, this.req.CppBaseName+"-impl.go"))
-	if err != nil {
-		panic(err)
+	if this.req.NotRemoveImplDotGo == false {
+		err = os.Remove(filepath.Join(dir, this.req.CppBaseName+"-impl.go"))
+		if err != nil {
+			panic(err)
+		}
 	}
 	err = os.Remove(filepath.Join(dir, this.req.CppBaseName+"-impl.h"))
 	if err != nil {
