@@ -14,6 +14,7 @@ func TestGo2cppContext_Generate1(t *testing.T) {
 		CppBaseName:                 "InProcessRpc",
 		EnableQtClass_RunOnUiThread: false,
 		EnableQtClass_Toast:         false,
+		NotRemoveImplDotGo:          true,
 	})
 
 	ctx.Generate1(testdata.Hello_EmptyArg)
@@ -39,8 +40,6 @@ func TestGo2cppContext_Generate1(t *testing.T) {
 	ctx.Generate1(testdata.Hello_Float32)
 	ctx.Generate1(testdata.Hello_Float64)
 
-	//ctx.Generate1(testdata.Hello_IntMax)
-	//ctx.Generate1(testdata.Hello_IntMin)
 	ctx.Generate1(testdata.Hello_IntCommon)
 
 	ctx.Generate1(testdata.Hello_StringEmpty)
@@ -131,11 +130,10 @@ int main()
 	assert_ok(Hello_Uint32Min(uint32_t(0)) == uint32_t(0), "Hello_Uint32Min");
 	assert_ok(Hello_Uint32Common(uint32_t(1001011)) == uint32_t(1001011), "Hello_Uint32Common");
 	
-	//assert_ok(Hello_IntMax(int(2147483647)) == int(2147483647), "Hello_IntMax");
-	//assert_ok(Hello_IntMin(int(-2147483648)) == int(-2147483648), "Hello_IntMin");
 	assert_ok(Hello_IntCommon(int(0x12345678)) == int(0x12345678), "Hello_IntCommon");
 
-	assert_ok(fabs(Hello_Float32(0.5678) - 1234.5678) < 1e-6, "Hello_Float32");
+	float v = Hello_Float32(0.5678);
+	assert_ok(fabs(v - 1234.56) < 0.01, "Hello_Float32");	// float32 有效位数为6位
 	assert_ok(fabs(Hello_Float64(0.5678) - 1234.5678) < 1e-6, "Hello_Float64");
 	
 	testHello_StringXXX();
@@ -280,8 +278,11 @@ void testHello_Map()
 
 	in[v1.V] = v1;
 	in[v2.V] = v2;
+	Hello_Map_Req req;
+	req.MData = in;
 
-	std::map<int, Struct4> out = Hello_Map(in);
+	Hello_Map_Resp resp = Hello_Map(req);
+	std::map<int, Struct4> out = resp.MData;
 	assert_ok(out.size() == 2, "testHello_Map.out.size");
 	assert_ok(out[1].I == 1, "testHello_Map.out[1].I");
 	assert_ok(out[1].V == std::string("1"), "testHello_Map.out[1].V");

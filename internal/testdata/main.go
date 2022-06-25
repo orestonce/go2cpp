@@ -125,21 +125,6 @@ func Hello_Float64(f float64) float64 {
 	return f + 1234
 }
 
-func Hello_IntMax(a int) int {
-	if a != 2147483647 {
-		panic("Hello_IntMax")
-	}
-	return a
-}
-
-func Hello_IntMin(a int) int {
-	if a != -2147483648 {
-
-		panic("Hello_IntMin " + strconv.Itoa(a))
-	}
-	return a
-}
-
 func Hello_IntCommon(a int) int {
 	if a != 0x12345678 {
 		panic("Hello_IntCommon")
@@ -282,13 +267,21 @@ type Struct4 struct {
 	I int
 }
 
-func Hello_Map(m map[string]Struct4) (m2 map[int]Struct4) {
-	if len(m) != 2 {
+type Hello_Map_Req struct {
+	MData map[string]Struct4
+}
+
+type Hello_Map_Resp struct {
+	MData map[int]Struct4
+}
+
+func Hello_Map(m Hello_Map_Req) (m2 Hello_Map_Resp) {
+	if len(m.MData) != 2 {
 		panic("len(m) != 2")
 	}
-	m2 = map[int]Struct4{}
-	for _, v := range m {
-		m2[v.I] = v
+	m2.MData = map[int]Struct4{}
+	for _, v := range m.MData {
+		m2.MData[v.I] = v
 		if v.V != strconv.Itoa(v.I) {
 			panic("v.V " + v.V)
 		}

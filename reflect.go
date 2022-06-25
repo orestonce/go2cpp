@@ -477,6 +477,7 @@ func (this *Go2cppContext) goDecode(name string, fType reflect.Type) {
 		buf.WriteString("}\n")
 	case reflect.Map:
 		buf.WriteString("{\n")
+		buf.WriteString(name + " = " + fType.String() + "{}\n")
 		varName := this.getNextVarName()
 		buf.WriteString("var " + varName + " int\n")
 		decodeInt(varName, "int")
