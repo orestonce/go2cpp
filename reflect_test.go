@@ -29,6 +29,14 @@ func TestGo2cppContext_Generate1(t *testing.T) {
 	ctx.Generate1(testdata.Hello_Uint8Min)
 	ctx.Generate1(testdata.Hello_Uint8Common)
 
+	ctx.Generate1(testdata.Hello_Int16Max)
+	ctx.Generate1(testdata.Hello_Int16Min)
+	ctx.Generate1(testdata.Hello_Int16Common)
+
+	ctx.Generate1(testdata.Hello_UInt16Max)
+	ctx.Generate1(testdata.Hello_UInt16Min)
+	ctx.Generate1(testdata.Hello_UInt16Common)
+
 	ctx.Generate1(testdata.Hello_Int32Max)
 	ctx.Generate1(testdata.Hello_Int32Min)
 	ctx.Generate1(testdata.Hello_Int32Common)
@@ -121,6 +129,10 @@ int main()
 	assert_ok(Hello_Uint8Max(uint8_t(255)) == uint8_t(255), "Hello_Uint8Max");
 	assert_ok(Hello_Uint8Min(uint8_t(0)) == uint8_t(0), "Hello_Uint8Min");
 	assert_ok(Hello_Uint8Common(uint8_t(95)) == uint8_t(95), "Hello_Uint8Common");
+
+	assert_ok(Hello_Int16Max(32767) == 32767, "Hello_Int16Max");
+	assert_ok(Hello_Int16Min(-32768) == -32768, "Hello_Int16Min");
+	assert_ok(Hello_Int16Common(121) == 121, "Hello_Int16Common");
 	
 	assert_ok(Hello_Int32Max(int32_t(2147483647)) == int32_t(2147483647), "Hello_Int32Max");
 	assert_ok(Hello_Int32Min(int32_t(-2147483648)) == int32_t(-2147483648), "Hello_Int32Min");

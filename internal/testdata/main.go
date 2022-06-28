@@ -69,6 +69,48 @@ func Hello_Uint8Common(a uint8) uint8 {
 	return a
 }
 
+func Hello_Int16Max(a int16) int16 {
+	if a != 32767 {
+		panic("Hello_Int16Max")
+	}
+	return a
+}
+
+func Hello_Int16Min(a int16) int16 {
+	if a != -32768 {
+		panic("Hello_Int16Min")
+	}
+	return a
+}
+
+func Hello_Int16Common(a int16) int16 {
+	if a != 121 {
+		panic("Hello_Int16Common")
+	}
+	return a
+}
+
+func Hello_UInt16Max(a uint16) uint16 {
+	if a != 65535 {
+		panic("Hello_UInt16Max")
+	}
+	return a
+}
+
+func Hello_UInt16Min(a uint16) uint16 {
+	if a != 0 {
+		panic("Hello_UInt16Min")
+	}
+	return a
+}
+
+func Hello_UInt16Common(a uint16) uint16 {
+	if a != 121 {
+		panic("Hello_UInt16Common")
+	}
+	return a
+}
+
 func Hello_Int32Max(a int32) int32 {
 	if a != 2147483647 {
 		panic("Hello_Int32Max")

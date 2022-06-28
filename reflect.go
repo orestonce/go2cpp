@@ -68,7 +68,8 @@ func (this *Go2cppContext) Generate1(methodFn interface{}) {
 		kind := out.Kind()
 		buf := &this.dotCpp
 		switch kind {
-		case reflect.Bool, reflect.Int8, reflect.Uint8, reflect.Int, reflect.Int32, reflect.Uint32, reflect.String, reflect.Struct, reflect.Slice, reflect.Map, reflect.Float64, reflect.Float32:
+		case reflect.Bool, reflect.Int8, reflect.Uint8, reflect.Int16, reflect.Uint16, reflect.Int,
+			reflect.Int32, reflect.Uint32, reflect.String, reflect.Struct, reflect.Slice, reflect.Map, reflect.Float64, reflect.Float32:
 			buf.WriteString("\t" + this.goType2Cpp(out) + " retValue;\n")
 			buf.WriteString("\t" + "int outIdx = 0;\n")
 			this.cppDecode("\t", "retValue", out)
@@ -227,6 +228,10 @@ func (this *Go2cppContext) goType2Cpp(out reflect.Type) string {
 		return "int8_t"
 	case reflect.Uint8:
 		return "uint8_t"
+	case reflect.Int16:
+		return "int16_t"
+	case reflect.Uint16:
+		return "uint16_t"
 	case reflect.Int32, reflect.Int:
 		return "int32_t"
 	case reflect.Uint32:
@@ -251,7 +256,7 @@ func (this *Go2cppContext) goType2Cpp(out reflect.Type) string {
 func (this *Go2cppContext) cppDecode(prefix string, name string, fType reflect.Type) {
 	buf := &this.dotCpp
 	kind := fType.Kind()
-	decodeUint32 := func(prefix, name0 string) {
+	decodeUint4 := func(prefix, name0 string) {
 		varNameA := this.getNextVarName()
 		varNameB := this.getNextVarName()
 		varNameC := this.getNextVarName()
@@ -263,19 +268,31 @@ func (this *Go2cppContext) cppDecode(prefix string, name string, fType reflect.T
 		buf.WriteString(prefix + name0 + " = " + varNameA + " | " + varNameB + " | " + varNameC + " | " + varNameD + ";\n")
 		buf.WriteString(prefix + "outIdx+=4;\n")
 	}
+	decodeUint2 := func(prefix, name0 string) {
+		varNameA := this.getNextVarName()
+		varNameB := this.getNextVarName()
+		buf.WriteString(prefix + "uint16_t " + varNameA + " = uint16_t(uint8_t(out[outIdx+0]) << 8);\n")
+		buf.WriteString(prefix + "uint16_t " + varNameB + " = uint16_t(uint8_t(out[outIdx+1]) << 0);\n")
+		buf.WriteString(prefix + name0 + " = " + varNameA + " | " + varNameB + ";\n")
+		buf.WriteString(prefix + "outIdx+=2;\n")
+	}
 	switch kind {
 	case reflect.Bool, reflect.Int8, reflect.Uint8:
 		buf.WriteString(prefix + name + " = (" + this.goType2Cpp(fType) + ") out[outIdx];\n")
 		buf.WriteString(prefix + "outIdx++;\n")
+	case reflect.Int16, reflect.Uint16:
+		buf.WriteString(prefix + "{\n")
+		decodeUint2(prefix+"\t", name)
+		buf.WriteString(prefix + "}\n")
 	case reflect.Int, reflect.Int32, reflect.Uint32:
 		buf.WriteString(prefix + "{\n")
-		decodeUint32(prefix+"\t", name)
+		decodeUint4(prefix+"\t", name)
 		buf.WriteString(prefix + "}\n")
 	case reflect.String:
 		buf.WriteString(prefix + "{\n")
 		varName := this.getNextVarName()
 		buf.WriteString(prefix + "\t" + "uint32_t " + varName + " = 0;\n")
-		decodeUint32(prefix+"\t", varName)
+		decodeUint4(prefix+"\t", varName)
 		buf.WriteString(prefix + "\t" + name + " = std::string(out+outIdx, out+outIdx+" + varName + ");\n")
 		buf.WriteString(prefix + "\t" + "outIdx+=" + varName + ";\n")
 		buf.WriteString(prefix + "}\n")
@@ -283,7 +300,7 @@ func (this *Go2cppContext) cppDecode(prefix string, name string, fType reflect.T
 		buf.WriteString(prefix + "{\n")
 		varName := this.getNextVarName()
 		buf.WriteString(prefix + "\t" + "uint32_t " + varName + " = 0;\n")
-		decodeUint32(prefix+"\t", varName)
+		decodeUint4(prefix+"\t", varName)
 		sName := this.getNextVarName()
 		buf.WriteString(prefix + "\tstd::string " + sName + " = std::string(out+outIdx, out+outIdx+" + varName + ");\n")
 		buf.WriteString(prefix + "\t" + "outIdx+=" + varName + ";\n")
@@ -303,7 +320,7 @@ func (this *Go2cppContext) cppDecode(prefix string, name string, fType reflect.T
 		buf.WriteString(prefix + "{\n")
 		varName0 := this.getNextVarName()
 		buf.WriteString(prefix + "\t" + "uint32_t " + varName0 + " = 0;\n")
-		decodeUint32(prefix+"\t", varName0)
+		decodeUint4(prefix+"\t", varName0)
 		varName1 := this.getNextVarName()
 		buf.WriteString(prefix + "\t" + "for (uint32_t " + varName1 + " = 0; " + varName1 + " < " + varName0 + "; " + varName1 + "++) {\n")
 		varName2 := this.getNextVarName()
@@ -316,7 +333,7 @@ func (this *Go2cppContext) cppDecode(prefix string, name string, fType reflect.T
 		buf.WriteString(prefix + "{\n")
 		varName0 := this.getNextVarName()
 		buf.WriteString(prefix + "\t" + "uint32_t " + varName0 + " = 0;\n")
-		decodeUint32(prefix+"\t", varName0)
+		decodeUint4(prefix+"\t", varName0)
 		varName1 := this.getNextVarName()
 		buf.WriteString(prefix + "\t" + "for (uint32_t " + varName1 + " = 0; " + varName1 + " < " + varName0 + "; " + varName1 + "++) {\n")
 		kName := this.getNextVarName()
@@ -355,7 +372,7 @@ func (this *Go2cppContext) goFnDeclare(pkgName string, shortPkgName string, meth
 
 			kind := in.Kind()
 			switch kind {
-			case reflect.Bool, reflect.Int8, reflect.Uint8, reflect.Int, reflect.Int32, reflect.Uint32, reflect.Float32, reflect.Float64:
+			case reflect.Bool, reflect.Int8, reflect.Uint8, reflect.Int16, reflect.Uint16, reflect.Int, reflect.Int32, reflect.Uint32, reflect.Float32, reflect.Float64:
 				buf.WriteString("var " + this.inArgName(idx) + " " + kind.String() + "\n")
 				this.goDecode(this.inArgName(idx), fnType.In(idx))
 			case reflect.String:
@@ -401,12 +418,19 @@ func (this *Go2cppContext) outArgName() string {
 func (this *Go2cppContext) goDecode(name string, fType reflect.Type) {
 	buf := &this.dotGo
 	kind := fType.Kind()
-	decodeInt := func(name0 string, kind0 string) {
+	decodeInt4 := func(name0 string, kind0 string) {
 		this.importMap["encoding/binary"] = struct{}{}
 		varName := this.getNextVarName()
 		buf.WriteString(varName + " := make([]byte, 4)\n")
 		buf.WriteString("inBuf.Read(" + varName + ")\n")
 		buf.WriteString(name0 + " = " + kind0 + "(binary.BigEndian.Uint32(" + varName + "))\n")
+	}
+	decodeInt2 := func(name0 string, kind0 string) {
+		this.importMap["encoding/binary"] = struct{}{}
+		varName := this.getNextVarName()
+		buf.WriteString(varName + " := make([]byte, 2)\n")
+		buf.WriteString("inBuf.Read(" + varName + ")\n")
+		buf.WriteString(name0 + " = " + kind0 + "(binary.BigEndian.Uint16(" + varName + "))\n")
 	}
 	if fType.PkgPath() != `` {
 		this.importMap[fType.PkgPath()] = struct{}{}
@@ -424,15 +448,17 @@ func (this *Go2cppContext) goDecode(name string, fType reflect.Type) {
 		buf.WriteString(varName + ", _ := inBuf.ReadByte()\n")
 		buf.WriteString(name + " = " + kind.String() + "(" + varName + ")\n")
 		buf.WriteString("}\n")
+	case reflect.Int16, reflect.Uint16:
+		decodeInt2(name, kind.String())
 	case reflect.Int, reflect.Int32, reflect.Uint32:
 		buf.WriteString("{\n")
-		decodeInt(name, kind.String())
+		decodeInt4(name, kind.String())
 		buf.WriteString("}\n")
 	case reflect.String:
 		buf.WriteString("{\n")
 		varName := this.getNextVarName()
 		buf.WriteString("var " + varName + " int\n")
-		decodeInt(varName, "int")
+		decodeInt4(varName, "int")
 		varName2 := this.getNextVarName()
 		buf.WriteString(varName2 + " := make([]byte, " + varName + ")\n")
 		buf.WriteString("inBuf.Read(" + varName2 + ")\n")
@@ -442,7 +468,7 @@ func (this *Go2cppContext) goDecode(name string, fType reflect.Type) {
 		buf.WriteString("{\n")
 		varName := this.getNextVarName()
 		buf.WriteString("var " + varName + " int\n")
-		decodeInt(varName, "int")
+		decodeInt4(varName, "int")
 		varName2 := this.getNextVarName()
 		buf.WriteString(varName2 + " := make([]byte, " + varName + ")\n")
 		buf.WriteString("inBuf.Read(" + varName2 + ")\n")
@@ -468,7 +494,7 @@ func (this *Go2cppContext) goDecode(name string, fType reflect.Type) {
 		buf.WriteString("{\n")
 		varName := this.getNextVarName()
 		buf.WriteString("var " + varName + " int\n")
-		decodeInt(varName, "int")
+		decodeInt4(varName, "int")
 		buf.WriteString(name + " = make(" + fType.String() + ", " + varName + ")\n")
 		varName2 := this.getNextVarName()
 		buf.WriteString("for " + varName2 + " := 0; " + varName2 + " < " + varName + "; " + varName2 + "++ {\n")
@@ -480,7 +506,7 @@ func (this *Go2cppContext) goDecode(name string, fType reflect.Type) {
 		buf.WriteString(name + " = " + fType.String() + "{}\n")
 		varName := this.getNextVarName()
 		buf.WriteString("var " + varName + " int\n")
-		decodeInt(varName, "int")
+		decodeInt4(varName, "int")
 		varName2 := this.getNextVarName()
 		buf.WriteString("for " + varName2 + " := 0; " + varName2 + " < " + varName + "; " + varName2 + "++ {\n")
 		kName := this.getNextVarName()
@@ -500,11 +526,18 @@ func (this *Go2cppContext) goDecode(name string, fType reflect.Type) {
 func (this *Go2cppContext) goEncode(name string, fType reflect.Type) {
 	kind := fType.Kind()
 	buf := &this.dotGo
-	encodeUint32 := func(name0 string) {
+	encodeUint4 := func(name0 string) {
 		this.importMap["encoding/binary"] = struct{}{}
 		varName := this.getNextVarName()
 		buf.WriteString(varName + " := make([]byte, 4)\n")
 		buf.WriteString("binary.BigEndian.PutUint32(" + varName + ", uint32(" + name0 + "))\n")
+		buf.WriteString("outBuf.Write(" + varName + ")\n")
+	}
+	encodeUint2 := func(name0 string) {
+		this.importMap["encoding/binary"] = struct{}{}
+		varName := this.getNextVarName()
+		buf.WriteString(varName + " := make([]byte, 2)\n")
+		buf.WriteString("binary.BigEndian.PutUint16(" + varName + ", uint16(" + name0 + "))\n")
 		buf.WriteString("outBuf.Write(" + varName + ")\n")
 	}
 	switch kind {
@@ -521,20 +554,24 @@ func (this *Go2cppContext) goEncode(name string, fType reflect.Type) {
 		buf.WriteString("{\n")
 		buf.WriteString("outBuf.WriteByte(byte(" + name + "))\n")
 		buf.WriteString("}\n")
+	case reflect.Int16, reflect.Uint16:
+		buf.WriteString("{\n")
+		encodeUint2(name)
+		buf.WriteString("}\n")
 	case reflect.Int, reflect.Int32, reflect.Uint32:
 		buf.WriteString("{\n")
-		encodeUint32(name)
+		encodeUint4(name)
 		buf.WriteString("}\n")
 	case reflect.String:
 		buf.WriteString("{\n")
-		encodeUint32("len(" + name + ")")
+		encodeUint4("len(" + name + ")")
 		buf.WriteString("outBuf.WriteString(" + name + ")\n")
 		buf.WriteString("}\n")
 	case reflect.Float64, reflect.Float32:
 		buf.WriteString("{\n")
 		nameS := this.getNextVarName()
 		buf.WriteString(nameS + " := strconv.FormatFloat(float64(" + name + "), 'f', -1, 64)\n")
-		encodeUint32("len(" + nameS + ")")
+		encodeUint4("len(" + nameS + ")")
 		buf.WriteString("outBuf.WriteString(" + nameS + ")\n")
 		buf.WriteString("}\n")
 	case reflect.Struct:
@@ -549,7 +586,7 @@ func (this *Go2cppContext) goEncode(name string, fType reflect.Type) {
 		buf.WriteString("}\n")
 	case reflect.Slice:
 		buf.WriteString("{\n")
-		encodeUint32("len(" + name + ")")
+		encodeUint4("len(" + name + ")")
 		varName := this.getNextVarName()
 		buf.WriteString("for " + varName + " := 0; " + varName + " < len(" + name + "); " + varName + "++{\n")
 		this.goEncode(name+"["+varName+"]", fType.Elem())
@@ -557,7 +594,7 @@ func (this *Go2cppContext) goEncode(name string, fType reflect.Type) {
 		buf.WriteString("}\n")
 	case reflect.Map:
 		buf.WriteString("{\n")
-		encodeUint32("len(" + name + ")")
+		encodeUint4("len(" + name + ")")
 		kName := this.getNextVarName()
 		vName := this.getNextVarName()
 		buf.WriteString("for " + kName + ", " + vName + " := range " + name + "{\n")
@@ -572,7 +609,7 @@ func (this *Go2cppContext) goEncode(name string, fType reflect.Type) {
 
 func (this *Go2cppContext) cppEncode(prefix string, name string, fType reflect.Type) {
 	buf := &this.dotCpp
-	encodeUint32 := func(prefix, name0 string) {
+	encodeUint4 := func(prefix, name0 string) {
 		varName := this.getNextVarName()
 		buf.WriteString(prefix + `char ` + varName + `[4];
 ` + prefix + varName + `[0] = (uint32_t(` + name0 + `) >> 24) & 0xFF;
@@ -581,20 +618,31 @@ func (this *Go2cppContext) cppEncode(prefix string, name string, fType reflect.T
 ` + prefix + varName + `[3] = (uint32_t(` + name0 + `) >> 0) & 0xFF;
 ` + prefix + `in.append(` + varName + `, 4);` + "\n")
 	}
+	encodeUint2 := func(prefix, name0 string) {
+		varName := this.getNextVarName()
+		buf.WriteString(prefix + `char ` + varName + `[2];
+` + prefix + varName + `[0] = (uint16_t(` + name0 + `) >> 8) & 0xFF;
+` + prefix + varName + `[1] = (uint16_t(` + name0 + `) >> 0) & 0xFF;
+` + prefix + `in.append(` + varName + `, 2);` + "\n")
+	}
 	switch fType.Kind() {
 	case reflect.Bool:
 		buf.WriteString(prefix + `in.append((char*)(&` + name + "), 1);\n")
 	case reflect.Uint8, reflect.Int8:
 		buf.WriteString(prefix + `in.append((char*)(&` + name + "), 1);\n")
+	case reflect.Int16, reflect.Uint16:
+		buf.WriteString(prefix + "{\n")
+		encodeUint2(prefix+"\t", name)
+		buf.WriteString(prefix + "}\n")
 	case reflect.Int32, reflect.Int, reflect.Uint32:
 		buf.WriteString(prefix + "{\n")
-		encodeUint32(prefix+"\t", name)
+		encodeUint4(prefix+"\t", name)
 		buf.WriteString(prefix + "}\n")
 	case reflect.String:
 		buf.WriteString(prefix + "{\n")
 		varName := this.getNextVarName()
 		buf.WriteString(prefix + "\t" + `uint32_t ` + varName + ` = ` + name + ".length();\n")
-		encodeUint32(prefix+"\t", varName)
+		encodeUint4(prefix+"\t", varName)
 		buf.WriteString(prefix + "\t" + `in.append(` + name + ");\n")
 		buf.WriteString(prefix + "}\n")
 	case reflect.Float32, reflect.Float64:
@@ -603,7 +651,7 @@ func (this *Go2cppContext) cppEncode(prefix string, name string, fType reflect.T
 		buf.WriteString("char " + bufName + "[64] = \"\";\n")
 		nName := this.getNextVarName()
 		buf.WriteString("int " + nName + " = snprintf(" + bufName + ", 64, \"%f\", " + name + ");\n")
-		encodeUint32(prefix+"\t", nName)
+		encodeUint4(prefix+"\t", nName)
 		buf.WriteString(prefix + "\t" + `in.append(` + bufName + ", size_t(" + nName + "));\n")
 		buf.WriteString(prefix + "}\n")
 	case reflect.Struct:
@@ -616,7 +664,7 @@ func (this *Go2cppContext) cppEncode(prefix string, name string, fType reflect.T
 		buf.WriteString(prefix + "{\n")
 		varName := this.getNextVarName()
 		buf.WriteString(prefix + "\t" + `uint32_t ` + varName + ` = ` + name + ".size();\n")
-		encodeUint32(prefix+"\t", varName)
+		encodeUint4(prefix+"\t", varName)
 		varName2 := this.getNextVarName()
 		buf.WriteString(prefix + "\tfor (uint32_t " + varName2 + "=0; " + varName2 + " < " + varName + "; ++" + varName2 + ") {\n")
 		this.cppEncode(prefix+"\t\t", name+"["+varName2+"]", fType.Elem())
@@ -626,7 +674,7 @@ func (this *Go2cppContext) cppEncode(prefix string, name string, fType reflect.T
 		buf.WriteString(prefix + "{\n")
 		varName := this.getNextVarName()
 		buf.WriteString(prefix + "\t" + `uint32_t ` + varName + ` = ` + name + ".size();\n")
-		encodeUint32(prefix+"\t", varName)
+		encodeUint4(prefix+"\t", varName)
 		itName := this.getNextVarName()
 		buf.WriteString(prefix + "\tfor(" + this.goType2Cpp(fType) + "::iterator " + itName + " = " + name + ".begin(); " + itName + " != " + name + ".end(); ++" + itName + ") {\n")
 		this.cppEncode(prefix+"\t\t", itName+"->first", fType.Key())
@@ -663,7 +711,8 @@ func (this *Go2cppContext) cppTypeDeclare(fnType reflect.Type) {
 	declareTypeBefore = func(in reflect.Type) {
 		var typeName string
 		switch in.Kind() {
-		case reflect.Bool, reflect.Int8, reflect.Uint8, reflect.Int, reflect.Int32, reflect.Uint32, reflect.String, reflect.Float32, reflect.Float64:
+		case reflect.Bool, reflect.Int8, reflect.Uint8, reflect.Int16, reflect.Uint16, reflect.Int,
+			reflect.Int32, reflect.Uint32, reflect.String, reflect.Float32, reflect.Float64:
 			return
 		case reflect.Struct:
 			typeName = this.goType2Cpp(in)
