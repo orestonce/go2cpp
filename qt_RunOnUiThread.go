@@ -19,6 +19,7 @@ public:
     // !!!注意,fn可能被调用,也可能由于RunOnUiThread被析构不被调用
     // 依赖于在fn里delete回收内存, 关闭文件等操作可能造成内存泄露
     void AddRunFnOn_UiThread(std::function<void ()> fn);
+	bool Get_Done();
 signals:
     void signal_newFn();
 private slots:
@@ -97,5 +98,11 @@ void RunOnUiThread::AddRunFnOn_UiThread(std::function<void ()> fn)
         m_funcList.push_back(fn);
     }
     emit this->signal_newFn();
+}
+
+bool RunOnUiThread::Get_Done()
+{
+	QMutexLocker lk(&this->m_Mutex);
+	return this->m_done;
 }
 `
