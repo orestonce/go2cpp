@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"runtime"
 )
 
 func TestGo2cppContext_Generate1(t *testing.T) {
@@ -84,14 +85,19 @@ func TestGo2cppContext_Generate1(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	cmd = exec.Command(filepath.Join(pwd, "tmp/temp1/a.exe"))
+	mustRunCmd("dir", "tmp/temp1")
+	mustRunCmd(filepath.Join(pwd, "tmp/temp1/a.exe"))
+	os.RemoveAll("tmp")
+}
+
+func mustRunCmd(cmdS string, args ...string) {
+	cmd := exec.Command(cmdS, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		panic(err)
 	}
-	os.RemoveAll("tmp")
 }
 
 const mainCpp = `
