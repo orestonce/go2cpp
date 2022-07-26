@@ -72,7 +72,7 @@ func TestGo2cppContext_Generate1(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	cmd := exec.Command("g++", "InProcessRpc.cpp", "main.cpp", "-std=c++11", "-m64", "InProcessRpc-impl.a")
+	cmd := exec.Command("g++", "InProcessRpc.cpp", "main.cpp", "-std=c++11", "-lpthread", "-m64", "InProcessRpc-impl.a")
 	cmd.Dir = "tmp/temp1/"
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
