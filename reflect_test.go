@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
-	"runtime"
 )
 
 func TestGo2cppContext_Generate1(t *testing.T) {
