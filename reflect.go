@@ -106,6 +106,7 @@ func (this *Go2cppContext) GetDotCppContent(implDotHContent []byte) []byte {
 func (this *Go2cppContext) GetDotHContent() []byte {
 	buf := bytes.NewBuffer(nil)
 	buf.WriteString("#pragma once\n\n")
+	buf.WriteString("#include <cstdlib>\n")
 	buf.WriteString("#include <string>\n")
 	buf.WriteString("#include <vector>\n")
 	buf.WriteString("#include <cstdint>\n")
