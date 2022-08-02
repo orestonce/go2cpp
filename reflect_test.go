@@ -84,7 +84,7 @@ func TestGo2cppContext_Generate1(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	mustRunCmd("dir", "tmp/temp1")
+	//mustRunCmd("dir", "tmp/temp1")
 	mustRunCmd(filepath.Join(pwd, "tmp/temp1/a.exe"))
 	os.RemoveAll("tmp")
 }

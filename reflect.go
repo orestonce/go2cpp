@@ -144,14 +144,18 @@ func (this *Go2cppContext) GetDotGoContent() []byte {
 }
 
 func (this *Go2cppContext) MustCreate386LibraryInDir(dir string) {
-	this.mustCreateLibrary(dir, "386")
+	this.mustCreateLibrary(dir, "386", "c-archive")
 }
 
 func (this *Go2cppContext) MustCreateAmd64LibraryInDir(dir string) {
-	this.mustCreateLibrary(dir, "amd64")
+	this.mustCreateLibrary(dir, "amd64", "c-archive")
 }
 
-func (this *Go2cppContext) mustCreateLibrary(dir string, goarch string) {
+func (this *Go2cppContext) MustCreateAmd64CSharedInDir(dir string) {
+	this.mustCreateLibrary(dir, "amd64", "c-shared")
+}
+
+func (this *Go2cppContext) mustCreateLibrary(dir string, goarch string, buildMode string) {
 	_, err := os.Stat(dir)
 	if err != nil {
 		err = os.MkdirAll(dir, 0777)
@@ -161,7 +165,7 @@ func (this *Go2cppContext) mustCreateLibrary(dir string, goarch string) {
 	}
 
 	writeFile(filepath.Join(dir, this.req.CppBaseName+"-impl.go"), this.GetDotGoContent())
-	cmd := exec.Command("go", "build", "-buildmode=c-archive", this.req.CppBaseName+"-impl.go")
+	cmd := exec.Command("go", "build", "-buildmode="+buildMode, this.req.CppBaseName+"-impl.go")
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=1", "GOARCH="+goarch)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
