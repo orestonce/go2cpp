@@ -143,19 +143,10 @@ func (this *Go2cppContext) GetDotGoContent() []byte {
 	return buf.Bytes()
 }
 
-func (this *Go2cppContext) MustCreate386LibraryInDir(dir string) {
-	this.mustCreateLibrary(dir, "386", "c-archive")
-}
-
-func (this *Go2cppContext) MustCreateAmd64LibraryInDir(dir string) {
-	this.mustCreateLibrary(dir, "amd64", "c-archive")
-}
-
-func (this *Go2cppContext) MustCreateAmd64CSharedInDir(dir string) {
-	this.mustCreateLibrary(dir, "amd64", "c-shared")
-}
-
-func (this *Go2cppContext) mustCreateLibrary(dir string, goarch string, buildMode string) {
+// MustCreateLibrary(dir, "386", "c-archive")
+// MustCreateLibrary(dir, "amd64", "c-archive")
+// MustCreateLibrary(dir, "amd64", "c-shared")
+func (this *Go2cppContext) MustCreateLibrary(dir string, goarch string, buildMode string) {
 	_, err := os.Stat(dir)
 	if err != nil {
 		err = os.MkdirAll(dir, 0777)

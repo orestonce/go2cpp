@@ -65,8 +65,9 @@ func TestGo2cppContext_Generate1(t *testing.T) {
 	ctx.Generate1(testdata.Hello_Struct3)
 	ctx.Generate1(testdata.Hello_Map)
 
-	ctx.MustCreateAmd64LibraryInDir("tmp/temp1")
+	//ctx.MustCreateAmd64LibraryInDir("tmp/temp1")
 	//ctx.MustCreate386LibraryInDir("tmp/temp1")
+	ctx.MustCreateLibrary("tmp/temp1", "amd64", "c-archive")
 
 	err := ioutil.WriteFile("tmp/temp1/main.cpp", []byte(mainCpp), 0777)
 	if err != nil {
