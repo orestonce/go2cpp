@@ -226,43 +226,68 @@ func (this *Go2cppContext) genOut(out reflect.Type) {
 }
 
 func (this *Go2cppContext) goType2Cpp(out reflect.Type) string {
-	switch out.Kind() {
-	case reflect.Bool:
-		return "bool"
-	case reflect.Int8:
-		return "int8_t"
-	case reflect.Uint8:
-		return "uint8_t"
-	case reflect.Int16:
-		return "int16_t"
-	case reflect.Uint16:
-		return "uint16_t"
-	case reflect.Int32, reflect.Int:
-		return "int32_t"
-	case reflect.Uint32:
-		return "uint32_t"
-	case reflect.String:
-		return "std::string"
-	case reflect.Float32:
-		return "float"
-	case reflect.Float64:
-		return "double"
-	case reflect.Struct:
-		return out.Name()
-	case reflect.Slice:
-		if this.req.UseQtDataStructure {
-			return "QVector<" + this.goType2Cpp(out.Elem()) + ">"
-		} else {
+	if this.req.UseQtDataStructure == false {
+		switch out.Kind() {
+		case reflect.Bool:
+			return "bool"
+		case reflect.Int8:
+			return "int8_t"
+		case reflect.Uint8:
+			return "uint8_t"
+		case reflect.Int16:
+			return "int16_t"
+		case reflect.Uint16:
+			return "uint16_t"
+		case reflect.Int32, reflect.Int:
+			return "int32_t"
+		case reflect.Uint32:
+			return "uint32_t"
+		case reflect.String:
+			return "std::string"
+		case reflect.Float32:
+			return "float"
+		case reflect.Float64:
+			return "double"
+		case reflect.Struct:
+			return out.Name()
+		case reflect.Slice:
 			return "std::vector<" + this.goType2Cpp(out.Elem()) + ">"
-		}
-	case reflect.Map:
-		if this.req.UseQtDataStructure {
-			return "QMap<" + this.goType2Cpp(out.Key()) + ", " + this.goType2Cpp(out.Elem()) + ">"
-		} else {
+		case reflect.Map:
 			return "std::map<" + this.goType2Cpp(out.Key()) + ", " + this.goType2Cpp(out.Elem()) + ">"
+		default:
+			panic("goType2Cpp2: " + out.Kind().String())
 		}
-	default:
-		panic("goType2Cpp: " + out.Kind().String())
+	} else {
+		switch out.Kind() {
+		case reflect.Bool:
+			return "bool"
+		case reflect.Int8:
+			return "qint8"
+		case reflect.Uint8:
+			return "quint8"
+		case reflect.Int16:
+			return "qint16"
+		case reflect.Uint16:
+			return "quint16"
+		case reflect.Int32, reflect.Int:
+			return "qint32"
+		case reflect.Uint32:
+			return "quint32"
+		case reflect.String:
+			return "QString"
+		case reflect.Float32:
+			return "float"
+		case reflect.Float64:
+			return "double"
+		case reflect.Struct:
+			return out.Name()
+		case reflect.Slice:
+			return "QVector<" + this.goType2Cpp(out.Elem()) + ">"
+		case reflect.Map:
+			return "QMap<" + this.goType2Cpp(out.Key()) + ", " + this.goType2Cpp(out.Elem()) + ">"
+		default:
+			panic("goType2Cpp2: " + out.Kind().String())
+		}
 	}
 }
 
