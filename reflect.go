@@ -29,6 +29,7 @@ type NewGo2cppContext_Req struct {
 	CppBaseName                 string
 	EnableQtClass_RunOnUiThread bool
 	EnableQtClass_Toast         bool
+	UseQtDataStructure          bool
 	NotRemoveImplDotGo          bool
 }
 
@@ -107,10 +108,16 @@ func (this *Go2cppContext) GetDotHContent() []byte {
 	buf := bytes.NewBuffer(nil)
 	buf.WriteString("#pragma once\n\n")
 	buf.WriteString("#include <cstdlib>\n")
-	buf.WriteString("#include <string>\n")
-	buf.WriteString("#include <vector>\n")
+	if this.req.UseQtDataStructure {
+		buf.WriteString("#include <QString>\n")
+		buf.WriteString("#include <QVector>\n")
+		buf.WriteString("#include <QMap>\n")
+	} else {
+		buf.WriteString("#include <string>\n")
+		buf.WriteString("#include <vector>\n")
+		buf.WriteString("#include <map>\n")
+	}
 	buf.WriteString("#include <cstdint>\n")
-	buf.WriteString("#include <map>\n")
 	buf.WriteString("//Qt Creator 需要在xxx.pro 内部增加静态库的链接声明\n")
 	buf.WriteString("//LIBS += -L$$PWD -l" + this.req.CppBaseName + "-impl\n")
 	buf.WriteString("\n")
@@ -243,9 +250,17 @@ func (this *Go2cppContext) goType2Cpp(out reflect.Type) string {
 	case reflect.Struct:
 		return out.Name()
 	case reflect.Slice:
-		return "std::vector<" + this.goType2Cpp(out.Elem()) + ">"
+		if this.req.UseQtDataStructure {
+			return "QVector<" + this.goType2Cpp(out.Elem()) + ">"
+		} else {
+			return "std::vector<" + this.goType2Cpp(out.Elem()) + ">"
+		}
 	case reflect.Map:
-		return "std::map<" + this.goType2Cpp(out.Key()) + ", " + this.goType2Cpp(out.Elem()) + ">"
+		if this.req.UseQtDataStructure {
+			return "QMap<" + this.goType2Cpp(out.Key()) + ", " + this.goType2Cpp(out.Elem()) + ">"
+		} else {
+			return "std::map<" + this.goType2Cpp(out.Key()) + ", " + this.goType2Cpp(out.Elem()) + ">"
+		}
 	default:
 		panic("goType2Cpp: " + out.Kind().String())
 	}
