@@ -700,9 +700,9 @@ func (this *Go2cppContext) cppEncode(prefix string, name string, fType reflect.T
 	switch fType.Kind() {
 	case reflect.Bool:
 		buf.WriteString(prefix + "if (" + name + ") {\n")
-		buf.WriteString(prefix + "in.append((char)1);\n")
+		buf.WriteString(prefix + "in.push_back((char)1);\n")
 		buf.WriteString(prefix + "} else {\n")
-		buf.WriteString(prefix + "in.append((char)0);\n")
+		buf.WriteString(prefix + "in.push_back((char)0);\n")
 		buf.WriteString(prefix + "}\n")
 		//buf.WriteString(prefix + `in.append((char*)(&` + name + "), 1);\n")
 	case reflect.Uint8, reflect.Int8:
